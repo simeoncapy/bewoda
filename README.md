@@ -13,9 +13,7 @@
 Total state (without Body Positions) : $14\times 20 \times 4 \times 5 \times 5 = 28000$.
 
 ## States
-$
-    s = s_r + s_w + s_h
-$
+$s = s_r + s_w + s_h$
 
 With $s_r$ the state of Yokobo (position of motors and light colour), $s_w$ the state of the world (temperature, humidity, AP and CO$_2$ level) and $s_h$ the state of the person (body positions and emotions).
 
