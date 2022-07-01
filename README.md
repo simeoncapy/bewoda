@@ -13,11 +13,16 @@
 Total state (without Body Positions) : $14\times 20 \times 4 \times 5 \times 5 = 28000$.
 
 ## Output commands
-* Motor 1 (base) position : {}
-* Motor 2 (head bow) position : {}
-* Motor 3 (head yaw) position : {}
-* LED rgb : {0 ; 255}\*3 $\pm$ 10 ==> **26 classes**\*3
-* LED intensity : {0 ; 255} $\pm$ 10 ==> **26 classes**
+* Motor 1 (base) : {-10 ; 0 ; +10}  ==> **3 classes**
+* Motor 2 (head bow) position : {-10 ; 0 ; +10}  ==> **3 classes**
+* Motor 3 (head yaw) position : {-10 ; 0 ; +10}  ==> **3 classes**
+* LED Red : {-10 ; 0 ; +10}  ==> **3 classes**
+* LED Green : {-10 ; 0 ; +10}  ==> **3 classes**
+* LED Blue : {-10 ; 0 ; +10}  ==> **3 classes**
+* LED Luminosity : {-10 ; 0 ; +10}  ==> **3 classes**
+
+Total actions: $3^7 = 2187$.
+There are boundaries for each command, the LED values are in the interval [0;255].
 
 ## States
 $$s = s_r + s_w + s_h$$
@@ -32,6 +37,8 @@ We can draw the Directed Acyclic Graph (DAG) as follow:
 ![State of the world diagram](img/sw.png)
 
 We can assume that all world data, i.e. meteorological data, are a function of the current **time**. Since Yokobo is working with a quite short time approach, we disregarded the current date, which has also an influence. Then, the **atmospheric pressure** influences the **temperatures**, **humidity data** and **CO2 level**. The latter is also related to inside **humidity** and **temperature**.
+
+Since the data of the weather station are updates every 10 min on the server: $s_w(t+\Delta t) = s_w$ for $\Delta t < 10 \text{ min}$.
 
 
 ### State of the robot (Yokobo) : $s_r$
