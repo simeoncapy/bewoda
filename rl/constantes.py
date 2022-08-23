@@ -3,8 +3,12 @@ import math
 
 # RL parameters
 EPSILON = 0.9
-DISCOUNT_FACTOR = 0.9
+DISCOUNT_FACTOR = 0.9 # gamma
 LEARNING_RATE = 0.9
+
+# NN fct size
+FC1_DIM = 256
+FC2_DIM = 256
 
 # STAE OF ACTIONS
 PALETTE = {
