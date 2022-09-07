@@ -9,11 +9,23 @@ import torch.optim as optim
 from QLearning import *
 from DeepQNetwork import Agent
 import gym
+import random
+import time
 
 dimStateMotor = len(cst.EMOTION) * cst.DIM_PAD * cst.INTENTION_DIM
 dimActionMotor = pow(len(cst.ACTIONS), cst.NUMBER_OF_MOTOR)
 
 #rl_motor = QLearning(dimStateMotor, dimActionMotor)
+
+seed = 123 # int(time.time())
+#T.use_deterministic_algorithms(True)
+#T.backends.cudnn.deterministic = True
+#T.backends.cudnn.benchmark = False
+T.cuda.manual_seed_all(seed)
+T.cuda.manual_seed(seed)
+T.manual_seed(seed)
+random.seed(seed)
+np.random.seed(seed)
 
 if __name__ == '__main__':
     env = gym.make("LunarLander-v2")

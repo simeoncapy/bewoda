@@ -1,5 +1,3 @@
-from re import S
-from turtle import forward
 import numpy as np
 import torch as T
 import torch.nn as nn
@@ -8,21 +6,6 @@ import torch.optim as optim
 import constantes as cst
 
 class DeepQNetwork(nn.Module):
-    # def __init__(self, lr, inputDims, fc1Dims, fc2Dims, nbrActions):
-    #     super(DeepQNetwork, self).__init__()
-    #     self.inputDims = inputDims
-    #     self.fc1Dims = fc1Dims
-    #     self.fc2Dims = fc2Dims
-    #     self.nbrActions = nbrActions
-
-    #     self.fc1 = nn.Linear(*self.inputDims, self.fc1Dims)
-    #     self.fc2 = nn.Linear(self.fc1Dims, self.fc2Dims) 
-    #     self.fc3 = nn.Linear(self.fc2Dims, self.nbrActions)
-    #     self.optimizer = optim.Adam(self.parameters(), lr=lr) 
-    #     self.loss = nn.MSELoss()
-    #     self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
-    #     self.to(self.device)
-
     def __init__(self, lr, inputDims, layersDim, nbrActions):
         super(DeepQNetwork, self).__init__()
         T.autograd.set_detect_anomaly(True)
@@ -45,22 +28,16 @@ class DeepQNetwork(nn.Module):
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
-    # def forward(self, state):
-    #     x = F.relu(self.fc1(state))
-    #     x = F.relu(self.fc2(x))
-    #     actions = self.fc3(x)
-
-    #     return actions
-
     def forward(self, state):
         x = F.relu(self.fct[0](state))
-        for layer in self.fct[1:]:
-            x = F.relu(layer(x))       
+        for layer in self.fct[1:-1]:
+            x = F.relu(layer(x))
+        actions = self.fct[-1](x)       
 
-        return x # actions
+        return actions
 
 class Agent():
-    def __init__(self, gamma, epsilon, lr, inputDims, batchSize, nbrActions, maxMemSize=100000, epsEnd=0.01, epsDec=5e-4):
+    def __init__(self, gamma, epsilon, lr, inputDims, batchSize, nbrActions, layersDim=[cst.FC1_DIM, cst.FC2_DIM], maxMemSize=100000, epsEnd=0.01, epsDec=5e-4):
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsMin = epsEnd
@@ -70,8 +47,9 @@ class Agent():
         self.memSize = maxMemSize
         self.batchSize = batchSize
         self.memCounter = 0
+        T.autograd.set_detect_anomaly(True)
 
-        self.Q_eval = DeepQNetwork(self.lr, nbrActions=nbrActions, inputDims=inputDims, layersDim=[cst.FC1_DIM, cst.FC2_DIM])
+        self.Q_eval = DeepQNetwork(self.lr, nbrActions=nbrActions, inputDims=inputDims, layersDim=layersDim)
 
         self.stateMemory = np.zeros((self.memSize, inputDims), dtype=np.float32)
         self.newStateMemory = np.zeros((self.memSize, inputDims), dtype=np.float32)
