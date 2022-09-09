@@ -35,7 +35,7 @@ MOTOR_MIN = 0 # degree
 MOTOR_MAX = 360 # degrees
 MOTOR_ORIGIN = 0 # degree
 
-ACTIONS = {-1, 0, 1}
+ACTIONS = [-1, 0, 1]
 
 # STATE OF ENVIRONMENT
 TEMPERATURE_MIN = -20 # °C
