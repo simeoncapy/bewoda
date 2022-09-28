@@ -33,7 +33,7 @@ NUMBER_OF_MOTOR = 3
 
 MOTOR_MIN = 0 # degree
 MOTOR_MAX = 360 # degrees
-MOTOR_ORIGIN = 0 # degree
+MOTOR_ORIGIN = [0, 0, 0] # TODO find the origin position
 
 ACTIONS = [-1, 0, 1]
 
@@ -57,19 +57,23 @@ TIME_STEP = 6 # hours
 # STATE OF HUMAN
 EMOTION_NEUTRAL = "neutral"
 EMOTION = [EMOTION_NEUTRAL, "happy", "sad", "surprise", "anger"]
+EMOTION_BAD = ["sad", "anger"]
+EMOTION_GOOD = ["happy"]
 
 CAMERA_X_SIZE	 = 640 # pixels
 CAMERA_Y_SIZE    = 480 # pixels
 
-TRAJECTORY_NUMBER_POINT = 2 # not used
+TRAJECTORY_NUMBER_POINT = 2
 SIZE_POINT_CANEVAS = 2 
 
 INTENTION_STEP = 1 # pixels
-INTENTION_DIM = math.ceil(CAMERA_X_SIZE/INTENTION_STEP) * math.ceil(CAMERA_Y_SIZE/INTENTION_STEP)
+#INTENTION_DIM = math.ceil(CAMERA_X_SIZE/INTENTION_STEP) * math.ceil(CAMERA_Y_SIZE/INTENTION_STEP)
+INTENTION_DIM = TRAJECTORY_NUMBER_POINT * 2
 
 # STATE OF ROBOT
 PAD = {-2, -1, 0, 1, 2}
-DIM_PAD = pow(len(PAD), 3) #5*5*5 # 5 states for P, A and D
+#DIM_PAD = pow(len(PAD), 3) #5*5*5 # 5 states for P, A and D
+DIM_PAD = 3
 
 # REWARD
 def TIME_REWARD(t): # time in second
@@ -85,6 +89,10 @@ def TIME_REWARD(t): # time in second
         return 0
     else:
         return False
+
+REWARD_BAD_EMOTION = -10
+REWARD_GOOD_EMOTION = 10
+REWARD_MOTOR_OUT = -50
 
 # NEP
 NEP_TOPIC = "yokobo_motor_rl"

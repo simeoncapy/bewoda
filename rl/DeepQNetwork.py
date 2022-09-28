@@ -36,6 +36,8 @@ class DeepQNetwork(nn.Module):
 
         return actions
 
+##############################################################################################################
+
 class Agent():
     def __init__(self, gamma, epsilon, lr, inputDims, batchSize, nbrActions, layersDim=[cst.FC1_DIM, cst.FC2_DIM], maxMemSize=100000, epsEnd=0.01, epsDec=5e-4):
         self.gamma = gamma
@@ -70,7 +72,7 @@ class Agent():
     def chooseAction(self, observation):
         if np.random.random() > self.epsilon:
             state = T.tensor([observation]).to(self.Q_eval.device)
-            actions = self.Q_eval.forward(state)
+            actions = self.Q_eval.forward(state.float())
             action = T.argmax(actions).item()
         else:
             action = np.random.choice(self.actionSpace)
@@ -95,8 +97,8 @@ class Agent():
 
         actionBatch = self.actionMemory[batch]
 
-        qEval = self.Q_eval.forward(stateBatch)[batchIndex, actionBatch]
-        qNext = self.Q_eval.forward(newStateBatch)
+        qEval = self.Q_eval.forward(stateBatch.float())[batchIndex, actionBatch]
+        qNext = self.Q_eval.forward(newStateBatch.float())
         qNext[terminalBatch] = 0.0
  
         qTarget = rewardBatch + self.gamma * T.max(qNext, dim=1)[0]
