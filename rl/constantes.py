@@ -1,8 +1,19 @@
+from tkinter import SEPARATOR
 from MyColor import *
 import math
+import numpy as np
+import roboticstoolbox as rtb
 
 # DEBUG
 FAKE_DATA = True
+
+# FILE
+SEPARATOR = ";"
+
+# UNIT
+DEGREE = "deg"
+RADIAN = "rad"
+DYNAMIXEL = "dyn"
 
 # RL parameters
 EPSILON = 0.9
@@ -28,12 +39,37 @@ PALETTE = {
 }
 
 LUMINOSITY_STEP = 10 # bytes
-MOTOR_STEP      = 10 # degrees
 NUMBER_OF_MOTOR = 3
 
-MOTOR_MIN = 0 # degree
-MOTOR_MAX = 360 # degrees
-MOTOR_ORIGIN = [0, 0, 0] # TODO find the origin position
+DYN_MAX = 4096
+def dynToDeg(val):    
+    return val * (360/DYN_MAX)
+def dynToRad(val):    
+    return val * (2*np.pi/DYN_MAX)
+
+_ORIG_ = [2015, 1800, 3000]
+MOTOR_ORIGIN = {DEGREE: list(map(dynToDeg, _ORIG_)), 
+                RADIAN: list(map(dynToRad, _ORIG_)), 
+                DYNAMIXEL: _ORIG_
+            }
+
+_MIN_ = [_ORIG_[0]-600, _ORIG_[1]-350, _ORIG_[2]-900]
+MOTOR_MIN = {DEGREE: list(map(dynToDeg, _MIN_)), 
+             RADIAN: list(map(dynToRad, _MIN_)), 
+             DYNAMIXEL: _MIN_
+            }
+
+_MAX_ = [_ORIG_[0]+600, _ORIG_[1]+350, _ORIG_[2]+900]
+MOTOR_MAX = {DEGREE: list(map(dynToDeg, _MAX_)), 
+             RADIAN: list(map(dynToRad, _MAX_)), 
+             DYNAMIXEL: _MAX_
+            }
+
+_STEP_ = 10 # degree
+MOTOR_STEP = {DEGREE: _STEP_, 
+              RADIAN: _STEP_*np.pi/180, 
+              DYNAMIXEL: _STEP_*(DYN_MAX/360)
+            }
 
 ACTIONS = [-1, 0, 1]
 
@@ -99,3 +135,15 @@ NEP_TOPIC = "yokobo_motor_rl"
 NEP_KEY_EMOTION_ESTIMATE = "emo_estimate"
 NEP_KEY_ROBOT_PAD = "robot_pad"
 NEP_KEY_BODY_ESTIMATE = "body_traj"
+
+# ROBOT
+ROBOT = rtb.DHRobot([
+        rtb.RevoluteDH(d=0, a=0, alpha=0), 
+        rtb.RevoluteDH(d=0.1, a=0, alpha=np.pi/2), 
+        rtb.RevoluteDH(d=0.02, a=0, alpha=-np.pi/2),
+        ], name="yokobo")
+
+NBR_POINT_DERIVATIVE_CALCULATION = 10 
+SAMPLING_RATE = 0.001
+AVERAGE_SIZE = 10
+MASS = (50 / 1000) # kg

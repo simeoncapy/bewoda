@@ -13,6 +13,8 @@ import random
 import time
 from YokoboEnv import *
 
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 #dimStateMotor = len(cst.EMOTION) * cst.DIM_PAD * cst.INTENTION_DIM
 dimStateMotor = 1 + cst.DIM_PAD + cst.INTENTION_DIM
 dimActionMotor = pow(len(cst.ACTIONS), cst.NUMBER_OF_MOTOR)
@@ -29,31 +31,11 @@ T.manual_seed(seed)
 random.seed(seed)
 np.random.seed(seed)
 
-if False:
-    env = gym.make("LunarLander-v2")
-    agent = Agent(gamma=0.99, epsilon=1.0, batchSize=64, nbrActions=4,
-                epsEnd=0.01, inputDims=8, lr=0.003)
-    scores, epsHistory = [],[]
-    nbrGames = 500
-
-    for i in range(nbrGames):
-        score = 0
-        done = False
-        observation = env.reset()
-        while not done:
-            action = agent.chooseAction(observation)
-            observation_, reward, done, info = env.step(action)
-            score += reward
-            agent.storeTransition(observation, action, reward, observation_, done)
-            agent.learn()
-            observation = observation_
-        scores.append(score)
-        epsHistory.append(agent.epsilon)
-
-        avgScore = np.mean(scores[-100:])
-        print("episode ", i, 'score %.2f' % score,
-                'average score %.2f' % avgScore,
-                "epsilon %.2f" % agent.epsilon)
+print("##########################################")
+print("###                                    ###")
+print("###             - BEWODA -             ###")
+print("###                                    ###")
+print("##########################################")
 
 if __name__ == '__main__':
     env = YokoboEnv()
@@ -74,16 +56,20 @@ if __name__ == '__main__':
             agent.storeTransition(observation, action, reward, observation_, done)
             agent.learn()
             observation = observation_
-            env.render()
+            #env.render()
         scores.append(score)
         epsHistory.append(agent.epsilon)
 
         avgScore = np.mean(scores[-100:])
         print("episode ", i, 'score %.2f' % score,
                 'average score %.2f' % avgScore,
-                "epsilon %.2f" % agent.epsilon)        
+                "epsilon %.2f" % agent.epsilon)
 
-    pyplot.hold()
+        info = "episode {:,} - score {:.2f} - average score {:.2f} - epsilon {:.2f} - gamma {:.2f} - LR {:.4f} - FAKE DATA ".format(i, score, avgScore, agent.epsilon, agent.gamma, agent.lr, str(cst.FAKE_DATA)) 
+        env.saveTrajectory(i, thres=70, info=info)
+               
+
+    #pyplot.hold()
 
         
 

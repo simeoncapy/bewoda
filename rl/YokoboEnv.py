@@ -8,9 +8,12 @@ import random
 import constantes as cst
 import NepThread as nep
 from Motor import *
+from Yokobo import *
 from gym import Env, spaces
 import time
 import roboticstoolbox as rtb
+from datetime import datetime
+import os
 
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
 
@@ -19,6 +22,7 @@ class YokoboEnv(Env):
         super(YokoboEnv, self).__init__()
 
         self.timer = 0
+        self.file = -1
 
         # 8 inputs (states):
         #   1)      User's emotion (enumeration)
@@ -37,16 +41,8 @@ class YokoboEnv(Env):
         self.canvasShape = (cst.CAMERA_Y_SIZE, cst.CAMERA_X_SIZE)
         self.canvas = np.ones(self.canvasShape)
 
-        self.robot = rtb.DHRobot([
-                        rtb.RevoluteDH(d=0, a=0, alpha=0), 
-                        rtb.RevoluteDH(d=0.1, a=0, alpha=np.pi/2), 
-                        rtb.RevoluteDH(d=0.02, a=0, alpha=-np.pi/2),
-                        ], name="yokobo")  
-
-        self.y_min = 0
-        self.x_min = 0
-        self.y_max = cst.CAMERA_Y_SIZE
-        self.x_max = cst.CAMERA_X_SIZE
+        self.robot = cst.ROBOT
+        self.yokobo = Yokobo()  
 
         # Define elements present inside the environment
         self.data = []
@@ -55,13 +51,9 @@ class YokoboEnv(Env):
         self.PAD = [0, 0, 0]
         self.trajectory = [(0,0), (0,0)]
 
-        self.motorMin = np.full(cst.NUMBER_OF_MOTOR, cst.MOTOR_MIN)
-        self.motorMax = np.full(cst.NUMBER_OF_MOTOR, cst.MOTOR_MAX)
-        #self.motorPos = np.full(cst.NUMBER_OF_MOTOR, cst.MOTOR_ORIGIN) # init motor position
-
-        self.motors = []
-        for i in range(cst.NUMBER_OF_MOTOR):
-            self.motors.append(Motor())
+        # self.motors = []
+        # for i in range(cst.NUMBER_OF_MOTOR):
+        #     self.motors.append(Motor())
         
         if cst.FAKE_DATA == False:
             self.nep = nep.NepThread()
@@ -85,9 +77,9 @@ class YokoboEnv(Env):
 
 
         text = 'PAD: ({}, {}, {}) | Emotion: {}'.format(self.PAD[0], self.PAD[1], self.PAD[2], cst.EMOTION[self.emotion])
-        text2 = 'MOTOR POSITION: '
-        for mot in self.motors:
-            text2 += 'M' + str(mot.id) + ' : ' + str(mot.position()) + '    '
+        text2 = 'MOTOR POSITION: ' + str(self.yokobo)
+        #for mot in self.motors:
+        #    text2 += 'M' + str(mot.id) + ' : ' + str(mot.position()) + '    '
 
         # Put the info on canvas 
         self.canvas = cv2.putText(self.canvas, text, (10,20), font,  
@@ -99,8 +91,9 @@ class YokoboEnv(Env):
 
     def reset(self):
         # reset the motor position
-        for mot in self.motors:
-            mot.reset()
+        self.yokobo.reset()
+        #for mot in self.motors:
+        #    mot.reset()
         #self.motorPos = np.full(cst.NUMBER_OF_MOTOR, cst.MOTOR_ORIGIN) #replace by calling the  motor class
 
         # Reset the reward
@@ -146,12 +139,50 @@ class YokoboEnv(Env):
         elif mode == "rgb_array":
             return self.canvas
         elif mode == "motor":
-            self.robot.plot([self.motors[0].position(), 
-                            self.motors[1].position(), 
-                            self.motors[2].position()], 
-                        )        
+            #self.robot.plot([self.motors[0].position(), 
+            #                self.motors[1].position(), 
+            #                self.motors[2].position()], 
+            #            )
+            self.robot.plot(self.yokobo.position())       
+
     def close(self):
         cv2.destroyAllWindows()
+
+
+    def saveTrajectory(self, episode="", thres=0, info=""):
+        if self.file != -1:
+            self.file.close
+
+        now = datetime.now()        
+        
+        traj = []
+        lengthTraj = -1
+        # units = ""
+        # for mot in self.motors:
+        #     temp = mot.trajectory()
+        #     if len(temp) < lengthTraj: # if the size is not same (because the motor were out of range), it readjusts the size of the other trajectory by adding the position of the last point
+        #         temp.append(temp[-1])
+        #     traj.append(temp)
+        #     lengthTraj = len(temp)
+        #     units += " " + mot.unit
+
+        traj, lengthTraj = self.yokobo.trajectory()
+
+        if lengthTraj < thres:
+            return
+
+        self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + ".traj", "a")
+        self.file.write("<units:" + self.yokobo.units() + ">\n")
+        if info != "":
+            self.file.write("<" + info + ">\n")
+
+        #t_traj = np.array([self.motors[0].trajectory(),self.motors[1].trajectory(),self.motors[2].trajectory()]).T.tolist()
+        t_traj = np.array(traj).T.tolist()
+
+        for position in t_traj:
+            position = [str(int) for int in position]            
+            self.file.write(cst.SEPARATOR.join(position)+"\n")
+        
 
     def createFakeData(self, type = "random"):
         if type == "random":
@@ -201,12 +232,21 @@ class YokoboEnv(Env):
         # Reward for executing a step.
         reward = 1
 
-        for i in range(len(self.motors)):
-            try:
-                self.motors[i].move(cst.ACTIONS[int(self.getAction(action)[-1 * (i+1)])] * cst.MOTOR_STEP) # select the rigit digit in the action
-            except ValueError: # out of range of the motor
-                reward += cst.REWARD_MOTOR_OUT
-                done = True      
+        # for i in range(len(self.motors)):
+        #     try:
+        #         self.motors[i].move(cst.ACTIONS[int(self.getAction(action)[-1 * (i+1)])] * cst.MOTOR_STEP[self.motors[i].unit]) # select the rigit digit in the action
+        #     except ValueError: # out of range of the motor
+        #         reward += cst.REWARD_MOTOR_OUT
+        #         done = True
+
+        pos = []
+        for i in range(len(self.yokobo)):
+            pos.append(cst.ACTIONS[int(self.getAction(action)[-1 * (i+1)])] * cst.MOTOR_STEP[self.yokobo.unit])
+        try:
+            self.yokobo.move(pos)
+        except ValueError: # out of range of the motor
+            reward += cst.REWARD_MOTOR_OUT
+            done = True      
 
         self.readData()
 

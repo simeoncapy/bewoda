@@ -2,29 +2,40 @@ import constantes as cst
 
 class Motor():
     _counter = 1
-    def __init__(self, id=-1):
+    def __init__(self, unit=cst.RADIAN, id=-1):
         if(id < 0):
             self.id = Motor._counter
         else:
             self.id = id
         Motor._counter += 1
-        self.currentPosition = self.getCurrentPosition()
 
-    def getCurrentPosition(self):
-        return 0
+        self.positionsList = []        
+        self.velocityList = []
+        self.unit = unit
+        self.reset()
 
-    def reset(self):
-        self.currentPosition = cst.MOTOR_ORIGIN[self.id - 1] # motor's ID starts from 1
+    def reset(self):        
+        self.positionsList = [cst.MOTOR_ORIGIN[self.unit][self.id - 1]]
 
     def position(self):
-        return self.currentPosition
+        return self.positionsList[-1]
 
+    def velocity(self):
+        return self.velocityList[-1]
+
+    def trajectory(self):
+        return self.positionsList
 
     def move(self, command):
-        newPos = (self.currentPosition + command)
-        if newPos > cst.MOTOR_MAX or newPos < cst.MOTOR_MIN:
+        newPos = (self.positionsList[-1] + command)
+        if newPos > cst.MOTOR_MAX[self.unit][self.id - 1] or newPos < cst.MOTOR_MIN[self.unit][self.id - 1]:
+            self.positionsList.append(self.positionsList[-1])
             raise ValueError
+        
+        #print(str(self.id) + " " + str(command))
+        self.positionsList.append(self.positionsList[-1]+command)
 
-        print(str(self.id) + " " + str(command))
-        self.currentPosition += command
-        return False
+        if len(self.positionsList) >= 2:
+            self.velocityList.append((self.positionsList[-1]-self.positionsList[-2])/cst.SAMPLING_RATE)
+
+        return True

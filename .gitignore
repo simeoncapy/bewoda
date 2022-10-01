@@ -1,2 +1,4 @@
 
 rl/temp.py
+rl/data/*
+rl/__pycache__/*
