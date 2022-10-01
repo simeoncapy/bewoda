@@ -18,6 +18,7 @@ class Yokobo():
         self.eeJerk = []
         self.eeEnergy = []    
 
+# -- OPERATORS
     def __str__(self) -> str:
         text = ""
         for mot in self.motors:
@@ -27,13 +28,7 @@ class Yokobo():
     def __len__(self):
         return len(self.motors)
 
-
-
-
-    def reset(self):
-        for mot in self.motors:
-            mot.reset()
-
+# -- GETTER SETTER
     def position(self):
         pos = []
         for mot in self.motors:
@@ -76,19 +71,48 @@ class Yokobo():
                 units += sep + mot.unit
             return units[1:]
 
-    def move(self, positions):
-        if len(positions) != len(self.motors):
-            raise ValueError("Number of position does not match the number of motors.")
+    def averageEndEffectorVelocity(self, samplingSize=cst.AVERAGE_SIZE):
+        return self._averageEndEffector(data=self.eeVelocity, samplingSize=samplingSize)
 
-        for i in range(len(self.motors)):
-            try:
-                self.motors[i].move(positions[i]) 
-            except ValueError: # out of range of the motor
-                raise ValueError("The position is out of range")
+    def averageEndEffectorAcceleration(self, samplingSize=cst.AVERAGE_SIZE):        
+        return self._averageEndEffector(data=self.eeAcceleration, samplingSize=samplingSize)
 
-        self.robot.q = self.position()
-        self._endEffectorVelocity()
-        
+    def averageEndEffectorJerk(self, samplingSize=cst.AVERAGE_SIZE):
+        return self._averageEndEffector(data=self.eeJerk, samplingSize=samplingSize)
+
+    def averageEndEffectorEnergy(self, samplingSize=cst.AVERAGE_SIZE):
+        return self._averageEndEffector(data=self.eeEnergy, samplingSize=samplingSize)
+
+
+    def magnitudeEndEffectorVelocity(self, average=False):
+        if average:
+            data = self.averageEndEffectorVelocity()
+        else:
+            data = self.eeVelocity[-1]
+        return self._magnitudeEndEffector(data)
+
+    def magnitudeEndEffectorAcceleration(self, average=False):
+        if average:
+            data = self.averageEndEffectorAcceleration()
+        else:
+            data = self.eeAcceleration[-1]
+        return self._magnitudeEndEffector(data)
+
+    def magnitudeEndEffectorJerk(self, average=False):
+        if average:
+            data = self.averageEndEffectorJerk()
+        else:
+            data = self.eeJerk[-1]
+        return self._magnitudeEndEffector(data)
+
+    def magnitudeEndEffectorEnergy(self, average=False):
+        if average:
+            data = self.averageEndEffectorEnergy()
+        else:
+            data = self.eeEnergy[-1]
+        return self._magnitudeEndEffector(data)
+
+# -- PRIVATE FUNCTIONS  
     def _endEffectorVelocity(self):
         J = self.robot.jacobe(self.robot.q)
         self.eeVelocity.append(J * np.array(self.velocity()).T)
@@ -117,17 +141,48 @@ class Yokobo():
         else:
             return sum(data[-samplingSize:])/samplingSize
 
-
-    def averageEndEffectorVelocity(self, samplingSize=cst.AVERAGE_SIZE):
-        return self._averageEndEffector(data=self.eeVelocity, samplingSize=samplingSize)
-
-    def averageEndEffectorAcceleration(self, samplingSize=cst.AVERAGE_SIZE):        
-        return self._averageEndEffector(data=self.eeAcceleration, samplingSize=samplingSize)
-
-    def averageEndEffectorJerk(self, samplingSize=cst.AVERAGE_SIZE):
-        return self._averageEndEffector(data=self.eeJerk, samplingSize=samplingSize)
+    def _magnitudeEndEffector(self, data):
+        return np.sqrt(np.power(data[0],2)+np.power(data[1],2)+np.power(data[2],2))
 
 
+# -- PUBLIC FUNCTIONS
+    def reset(self):
+        for mot in self.motors:
+            mot.reset()
+
+    def move(self, positions):
+        if len(positions) != len(self.motors):
+            raise ValueError("Number of position does not match the number of motors.")
+
+        for i in range(len(self.motors)):
+            try:
+                self.motors[i].move(positions[i]) 
+            except ValueError: # out of range of the motor
+                raise ValueError("The position is out of range")
+
+        self.robot.q = self.position()
+        self._endEffectorVelocity()
+       
     def pad(self):
-        return [0, 0, 0]
+        pleasure, arousal, dominance = 0, 0, 0
+
+        if self.averageEndEffectorVelocity() < cst.VELOCITY_LOW:
+            pleasure, arousal, dominance = 0, 0, 0
+        if self.averageEndEffectorJerk() > cst.JERK_HIGH:
+            pleasure = -5
+            arousal = -3
+
+        if self.averageEndEffectorEnergy() > cst.ENERGY_HIGH:
+            arousal += 1
+        
+        
+
+        if pleasure     > 5:    pleasure = 5
+        if pleasure     < -5:   pleasure = -5
+        if arousal      > 5:    arousal = 5
+        if arousal      < -5:   arousal = -5
+        if dominance    > 5:    dominance = 5
+        if dominance    < -5:   dominance = -5
+
+        return [pleasure, arousal, dominance]
     
