@@ -118,13 +118,19 @@ def TIME_REWARD(t): # time in second
     elif(t >= 10 and t < 30):
         return -50
     elif(t >= 30 and t < 60):
-        return -25
+        return 25
     elif(t >= 60 and t < 120):
-        return 10
+        return 50
     elif(t>= 120):
         return 0
     else:
         return False
+
+def TIME_REWARD_CONTINUOUS(t):
+    if(t >= 30 and t < 120):
+        return 2
+    else:
+        return 0
 
 REWARD_BAD_EMOTION = -10
 REWARD_GOOD_EMOTION = 10
@@ -148,9 +154,21 @@ SAMPLING_RATE = 0.001
 AVERAGE_SIZE = 10
 MASS = (50 / 1000) # kg
 
-VELOCITY_LOW = 0.01 # m/s
+VELOCITY_HIGH   = 0.5 # m/s
+VELOCITY_MEDIUM = 0.1 # m/s
+VELOCITY_LOW    = 0.01 # m/s
+
 ANGULAR_VELOCITY_LOW = 0.1 # rad/s
 
-JERK_HIGH = 0.5 # m/s^3
+ACCELERATION_HIGH   = 0.5 # m/s^2
+ACCELERATION_MEDIUM = 0.5 # m/s^2
+ACCELERATION_LOW    = 0.5 # m/s^2
 
-ENERGY_HIGH = 3 # J
+JERK_HIGH   = 0.5 # m/s^3
+JERK_MEDIUM = 0.5 # m/s^3
+JERK_LOW    = 0.5 # m/s^3
+
+ENERGY_HIGH     = 3 # J
+ENERGY_MEDIUM   = 2 # J
+ENERGY_LOW      = 1 # J
+

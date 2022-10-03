@@ -231,6 +231,7 @@ class YokoboEnv(Env):
        
         # Reward for executing a step.
         reward = 1
+        reward += cst.TIME_REWARD_CONTINUOUS(time.perf_counter() - self.timer)
 
         # for i in range(len(self.motors)):
         #     try:
