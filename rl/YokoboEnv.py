@@ -243,11 +243,11 @@ class YokoboEnv(Env):
         pos = []
         for i in range(len(self.yokobo)):
             pos.append(cst.ACTIONS[int(self.getAction(action)[-1 * (i+1)])] * cst.MOTOR_STEP[self.yokobo.unit])
-        try:
-            self.yokobo.move(pos)
-        except ValueError: # out of range of the motor
-            reward += cst.REWARD_MOTOR_OUT
-            done = True      
+            try:
+                self.yokobo.move(pos)
+            except ValueError: # out of range of the motor
+                reward += cst.REWARD_MOTOR_OUT
+                done = True      
 
         self.readData()
 
