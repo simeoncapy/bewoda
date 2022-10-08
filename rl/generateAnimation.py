@@ -13,10 +13,13 @@ robot = cst.ROBOT
 print(robot)
 
 
-pyplot = rtb.backends.PyPlot.PyPlot()
-#robot.plot([0, 0, 0], block=True)
+# pyplot = rtb.backends.PyPlot.PyPlot()
+# robot.plot(cst.MOTOR_ORIGIN[cst.RADIAN], block=True)
+# plt.show()
+# pyplot.hold()
+# exit()
 
-fileName = "archive/motors-2022-09-29_18-36-58-565968(151_pts)_490"
+fileName = "archive/motors-2022-10-07_18-50-42-937470(82_pts)_270"
 f = open(fileName + ".traj", 'r')
 temp = f.read().splitlines()
 while temp[0][0] == "<":
@@ -37,18 +40,20 @@ f.close()
 #    # Step the simulator by 50 ms
 #    pyplot.step(0.001)
 
-#pyplot.hold()
+# plt.show()
+# pyplot.hold()
 
-print(np.array(input_list))
-plt.plot(np.array(input_list))
-plt.legend(["M1", "M2", "M3"])
-plt.show()
-# robot.plot(        
-#         np.array(input_list),
-#         backend='pyplot',
-#         dt=0.001,
-#         movie=fileName+"2.gif",
-#         block=True
-#     )
+# print(np.array(input_list))
+# plt.plot(np.array(input_list))
+# plt.legend(["M1", "M2", "M3"])
+# plt.show()
+
+robot.plot(        
+        np.array(input_list),
+        backend='pyplot',
+        dt=0.001,
+        movie=fileName+".gif",
+        block=True
+    )
 
 #pyplot.hold()

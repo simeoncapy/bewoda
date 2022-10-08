@@ -1,3 +1,4 @@
+from xmlrpc.client import Boolean
 import constantes as cst
 import roboticstoolbox as rtb
 from Motor import *
@@ -73,52 +74,48 @@ class Yokobo():
 
     def averageEndEffectorVelocity(self, samplingSize=cst.AVERAGE_SIZE):
         '''
-            Calculate the average end effector velocity over the last *samplingSize* data, return -1 if there a not enough data
+            Calculate the average end effector velocity over the last *samplingSize* data in the end effector frame, return -1 if there a not enough data
             Output form:
             [
-                v_x: velocity over x axis in m/s
-                v_y: velocity over y axis in m/s
+                v_x: velocity over x axis in m/s,
+                v_y: velocity over y axis in m/s,
                 v_z: velocity over z axis in m/s
-                omega: angular velocity   in rad/s
             ]
         '''
         return self._averageEndEffector(data=self.eeVelocity, samplingSize=samplingSize)
 
     def averageEndEffectorAcceleration(self, samplingSize=cst.AVERAGE_SIZE):
         '''
-            Calculate the average end effector acceleration over the last *samplingSize* data, return -1 if there a not enough data
+            Calculate the average end effector acceleration over the last *samplingSize* data in the end effector frame, return -1 if there a not enough data
             Output form:
             [
-                a_x: acceleration over x axis in m/s²
-                a_y: acceleration over y axis in m/s²
+                a_x: acceleration over x axis in m/s²,
+                a_y: acceleration over y axis in m/s²,
                 a_z: acceleration over z axis in m/s²
-                alpha: angular acceleration   in rad/s²
             ]
         '''        
         return self._averageEndEffector(data=self.eeAcceleration, samplingSize=samplingSize)
 
     def averageEndEffectorJerk(self, samplingSize=cst.AVERAGE_SIZE):
         '''
-            Calculate the average end effector jerk over the last *samplingSize* data, return -1 if there a not enough data
+            Calculate the average end effector jerk over the last *samplingSize* data in the end effector frame, return -1 if there a not enough data
             Output form:
             [
-                j_x: jerk over x axis in m/s^3
-                j_y: jerk over y axis in m/s^3
+                j_x: jerk over x axis in m/s^3,
+                j_y: jerk over y axis in m/s^3,
                 j_z: jerk over z axis in m/s^3
-                dzeta: angular jerk   in rad/s^3
             ]
         '''
         return self._averageEndEffector(data=self.eeJerk, samplingSize=samplingSize)
 
     def averageEndEffectorEnergy(self, samplingSize=cst.AVERAGE_SIZE):
         '''
-            Calculate the average end effector kinematic energy over the last *samplingSize* data, return -1 if there a not enough data
+            Calculate the average end effector kinematic energy over the last *samplingSize* data in the end effector frame, return -1 if there a not enough data
             Output form:
             [
-                Ek_x: kinematic energy over x axis in J
-                Ek_y: kinematic energy over y axis in J
+                Ek_x: kinematic energy over x axis in J,
+                Ek_y: kinematic energy over y axis in J,
                 Ek_z: kinematic energy over z axis in J
-                1/2*m*omega²: no physical meaning
             ]
         '''
         return self._averageEndEffector(data=self.eeEnergy, samplingSize=samplingSize)
@@ -153,42 +150,55 @@ class Yokobo():
         return self._magnitudeEndEffector(data)
 
 # -- PRIVATE FUNCTIONS  
-    def _endEffectorVelocity(self): # (v_x, v_y, v_z, omega)
-        J = self.robot.jacobe(self.robot.q)
-        self.eeVelocity.append(J * np.array(self.velocity()).T)
+    def _endEffectorVelocity(self): # (v_x, v_y, v_z)
+        J = self.robot.jacob0(self.robot.q)
+        #print(J * np.atleast_2d(self.velocity()).T)
+        try:
+            self.eeVelocity.append(np.dot(J, np.atleast_2d(self.velocity()).T)[0:3])
+        except Exception as e:
+            print(e)
+        
         self._endEffectorEnergy()
         self._endEffectorAcceleration()
 
-    def _endEffectorAcceleration(self): # (a_x, a_y, a_z, alpha)
+    def _endEffectorAcceleration(self): # (a_x, a_y, a_z)
         if len(self.eeVelocity)<2:
             return
         else:
-            self.eeAcceleration = (self.eeVelocity[-1]-self.eeVelocity[-2])/cst.SAMPLING_RATE
+            self.eeAcceleration.append((self.eeVelocity[-1]-self.eeVelocity[-2])/cst.SAMPLING_RATE)
         self._endEffectorJerk()
 
-    def _endEffectorJerk(self): # (j_x, j_y, j_z, zeta)
+    def _endEffectorJerk(self): # (j_x, j_y, j_z)
         if len(self.eeAcceleration)<2:
             return
         else:
-            self.eeJerk = (self.eeAcceleration[-1]-self.eeAcceleration[-2])/cst.SAMPLING_RATE
+            self.eeJerk.append((self.eeAcceleration[-1]-self.eeAcceleration[-2])/cst.SAMPLING_RATE)
 
-    def _endEffectorEnergy(self): # (E_x, E_y, E_z, Er)
-        self.eeEnergy.append((self.mass/2) * np.power(self.eeVelocity, 2))
+    def _endEffectorEnergy(self): # (E_x, E_y, E_z)
+        self.eeEnergy.append((self.mass/2) * np.power(self.eeVelocity[-1], 2))
 
     def _averageEndEffector(self, data, samplingSize=cst.AVERAGE_SIZE):
         if len(data) < samplingSize:
-            return -1
+            return False
         else:
             return sum(data[-samplingSize:])/samplingSize
 
     def _magnitudeEndEffector(self, data):
-        return np.sqrt(np.power(data[0],2)+np.power(data[1],2)+np.power(data[2],2))
+        if isinstance(data, Boolean) and data == False:
+            return False
+        else:
+            return np.sqrt(np.power(data[0],2)+np.power(data[1],2)+np.power(data[2],2))
 
 
 # -- PUBLIC FUNCTIONS
     def reset(self):
         for mot in self.motors:
             mot.reset()
+
+        self.eeVelocity = []
+        self.eeAcceleration = []
+        self.eeJerk = []
+        self.eeEnergy = [] 
 
     def move(self, positions):
         if len(positions) != len(self.motors):
@@ -206,56 +216,35 @@ class Yokobo():
     def pad(self):
         pleasure, arousal, dominance = 0, 0, 0
 
-        velocity = self.magnitudeEndEffectorVelocity(True)
-        acceleration = self.magnitudeEndEffectorAcceleration(True)
         jerk = self.magnitudeEndEffectorJerk(True)
         energy = self.magnitudeEndEffectorEnergy(True)
+        m2 = self.position()[1]
 
-        m2 = self.position[1]
+        PAD_MIN = min(cst.PAD)
+        PAD_MAX = max(cst.PAD)
 
-        # ABSOLUTE SET
-        # NULL
-        if velocity < cst.VELOCITY_LOW:
-            pleasure, arousal, dominance = 0, 0, 0
+        print("acce: " + str(self.magnitudeEndEffectorAcceleration(True)))
+        print("jerk: " + str(jerk))
+        if jerk != False:
+            if jerk > cst.JERK_MAX: # Since we cannot compute the maximum jerk
+                cst.JERK_MAX = jerk            
+            pleasure = -1 * (((PAD_MAX-PAD_MIN)*jerk/cst.JERK_MAX) + PAD_MIN)
 
-        # PLEASURE
-        if jerk >= cst.JERK_HIGH:
-            pleasure = min(cst.PAD)
-        elif jerk >= cst.JERK_MEDIUM and jerk < cst.JERK_HIGH:
-            pleasure = -2
-        elif jerk >= cst.JERK_LOW and jerk < cst.JERK_MEDIUM:
-            pleasure = 1
-        elif jerk > 0 and jerk < cst.JERK_LOW:
-            pleasure = 3
-        elif jerk == 0:
-            pleasure = max(cst.PAD)
+        if energy != False:
+            arousal = ((PAD_MAX-PAD_MIN)*energy/cst.ENERGY_MAX) + PAD_MIN
 
-
-        # RELATIVE SET
-        if energy >= cst.ENERGY_HIGH:
-            arousal += 2
-        elif energy >= cst.ENERGY_MEDIUM and energy < cst.ENERGY_HIGH:
-            arousal += 1
-        elif energy >= cst.ENERGY_LOW and energy < cst.ENERGY_MEDIUM:
-            arousal += 0
-        elif energy > 0 and energy < cst.ENERGY_MEDIUM:
-            arousal -= 1
-        elif energy == 0:
-            arousal -= 2 
-
-        if m2 >= (cst.MOTOR_MAX[self.unit][1] - cst.MOTOR_ORIGIN[self.unit][1])/2: # low head
-            dominance -= 2
-        elif m2 <= (cst.MOTOR_ORIGIN[self.unit][1] - cst.MOTOR_MIN[self.unit][1])/2: # high head
-            dominance += 2
+        M2_MIN = cst.MOTOR_MIN[self.unit][1]
+        M2_MAX = cst.MOTOR_MAX[self.unit][1]
+        dominance = ((PAD_MAX-PAD_MIN)/(M2_MAX - M2_MIN)) * m2 + ((PAD_MIN * M2_MAX - PAD_MAX * M2_MIN)/(M2_MAX - M2_MIN))
+               
         
-        
-
-        if pleasure     > max(cst.PAD):   pleasure = max(cst.PAD)
-        if pleasure     < min(cst.PAD):   pleasure = min(cst.PAD)
-        if arousal      > max(cst.PAD):   arousal = max(cst.PAD)
-        if arousal      < min(cst.PAD):   arousal = min(cst.PAD)
-        if dominance    > max(cst.PAD):   dominance = max(cst.PAD)
-        if dominance    < min(cst.PAD):   dominance = min(cst.PAD)
+        # SECURITY CHECKS
+        if pleasure     > PAD_MAX:   pleasure = PAD_MAX
+        if pleasure     < PAD_MIN:   pleasure = PAD_MIN
+        if arousal      > PAD_MAX:   arousal = PAD_MAX
+        if arousal      < PAD_MIN:   arousal = PAD_MIN
+        if dominance    > PAD_MAX:   dominance = PAD_MAX
+        if dominance    < PAD_MIN:   dominance = PAD_MIN
 
         return [pleasure, arousal, dominance]
     

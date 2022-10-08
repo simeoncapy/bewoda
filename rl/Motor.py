@@ -28,6 +28,7 @@ class Motor():
 
     def move(self, command):
         newPos = (self.positionsList[-1] + command)
+        #print("MIN: " + str(cst.MOTOR_MIN[self.unit][self.id - 1]) + " - pos: " + str(newPos) + " - MAX: " + str(cst.MOTOR_MAX[self.unit][self.id - 1]))
         if newPos > cst.MOTOR_MAX[self.unit][self.id - 1] or newPos < cst.MOTOR_MIN[self.unit][self.id - 1]:
             self.positionsList.append(self.positionsList[-1])
             raise ValueError

@@ -119,7 +119,7 @@ class YokoboEnv(Env):
         else:
             self.data = self.nep.readData()
         self.emotion = self.data[0]
-        self.PAD = self.data[1]
+        self.PAD = self.yokobo.pad()
         self.trajectory = self.data[2]
 
         traj = []
@@ -187,7 +187,7 @@ class YokoboEnv(Env):
     def createFakeData(self, type = "random"):
         if type == "random":
            return [random.randint(0, len(cst.EMOTION)-1),
-                  [random.randint(min(cst.PAD), max(cst.PAD)), random.randint(min(cst.PAD), max(cst.PAD)), random.randint(min(cst.PAD), max(cst.PAD))],
+                  [random.uniform(min(cst.PAD), max(cst.PAD)), random.uniform(min(cst.PAD), max(cst.PAD)), random.uniform(min(cst.PAD), max(cst.PAD))],
                   [(random.randint(0, cst.CAMERA_X_SIZE), random.randint(0, cst.CAMERA_Y_SIZE)), (random.randint(0, cst.CAMERA_X_SIZE), random.randint(0, cst.CAMERA_Y_SIZE))]]
         else:
             return np.zeros(self.observation_shape)
@@ -243,11 +243,11 @@ class YokoboEnv(Env):
         pos = []
         for i in range(len(self.yokobo)):
             pos.append(cst.ACTIONS[int(self.getAction(action)[-1 * (i+1)])] * cst.MOTOR_STEP[self.yokobo.unit])
-            try:
-                self.yokobo.move(pos)
-            except ValueError: # out of range of the motor
-                reward += cst.REWARD_MOTOR_OUT
-                done = True      
+        try:
+            self.yokobo.move(pos)
+        except ValueError: # out of range of the motor
+            reward += cst.REWARD_MOTOR_OUT
+            done = True      
 
         self.readData()
 
@@ -266,7 +266,6 @@ class YokoboEnv(Env):
 
         # Draw elements on the canvas
         self.drawElementsOnCanvas()
-
 
         #return self.canvas, reward, done, []
         return self.dataExpanded, reward, done, []

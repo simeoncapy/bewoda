@@ -41,11 +41,11 @@ PALETTE = {
 LUMINOSITY_STEP = 10 # bytes
 NUMBER_OF_MOTOR = 3
 
-DYN_MAX = 4096
+DYN_MAX = 4095
 def dynToDeg(val):    
-    return val * (360/DYN_MAX)
+    return val * (360/DYN_MAX) - 180
 def dynToRad(val):    
-    return val * (2*np.pi/DYN_MAX)
+    return val * (2*np.pi/DYN_MAX) - np.pi
 
 _ORIG_ = [2015, 1800, 3000]
 MOTOR_ORIGIN = {DEGREE: list(map(dynToDeg, _ORIG_)), 
@@ -70,6 +70,8 @@ MOTOR_STEP = {DEGREE: _STEP_,
               RADIAN: _STEP_*np.pi/180, 
               DYNAMIXEL: _STEP_*(DYN_MAX/360)
             }
+
+MOTOR_MAX_SPEED = 234.27 * (np.pi/60) # rad/s 
 
 ACTIONS = [-1, 0, 1]
 
@@ -107,9 +109,9 @@ INTENTION_STEP = 1 # pixels
 INTENTION_DIM = TRAJECTORY_NUMBER_POINT * 2
 
 # STATE OF ROBOT
-PAD = {-2, -1, 0, 1, 2}
+PAD = {-1, 1} # range
 #DIM_PAD = pow(len(PAD), 3) #5*5*5 # 5 states for P, A and D
-DIM_PAD = 3
+DIM_PAD = 3 # P, A and D
 
 # REWARD
 def TIME_REWARD(t): # time in second
@@ -143,10 +145,19 @@ NEP_KEY_ROBOT_PAD = "robot_pad"
 NEP_KEY_BODY_ESTIMATE = "body_traj"
 
 # ROBOT
+MOTOR_2_ECCENTRIC = 0.01 # m
+YOKOBO_BOWL_HEIGH = 0.1 # m
+
+# ROBOT = rtb.DHRobot([
+#         rtb.RevoluteDH(d=0, a=0, alpha=0), 
+#         rtb.RevoluteDH(d=0.1, a=0, alpha=np.pi/2), 
+#         rtb.RevoluteDH(d=0.02, a=0, alpha=-np.pi/2),
+#         ], name="yokobo")
+
 ROBOT = rtb.DHRobot([
-        rtb.RevoluteDH(d=0, a=0, alpha=0), 
-        rtb.RevoluteDH(d=0.1, a=0, alpha=np.pi/2), 
-        rtb.RevoluteDH(d=0.02, a=0, alpha=-np.pi/2),
+        rtb.RevoluteDH(d=0, a=0, alpha=np.pi/2), 
+        rtb.RevoluteDH(d=0, a=MOTOR_2_ECCENTRIC, alpha=-np.pi/2), 
+        rtb.RevoluteDH(d=YOKOBO_BOWL_HEIGH, a=0, alpha=0),
         ], name="yokobo")
 
 NBR_POINT_DERIVATIVE_CALCULATION = 10 
@@ -154,21 +165,8 @@ SAMPLING_RATE = 0.001
 AVERAGE_SIZE = 10
 MASS = (50 / 1000) # kg
 
-VELOCITY_HIGH   = 0.5 # m/s
-VELOCITY_MEDIUM = 0.1 # m/s
-VELOCITY_LOW    = 0.01 # m/s
+VELOCITY_MAX = np.sqrt(2*np.power(MOTOR_2_ECCENTRIC, 2) + np.power(YOKOBO_BOWL_HEIGH, 2)) * MOTOR_MAX_SPEED
+ENERGY_MAX = (MASS / 2) * np.power(VELOCITY_MAX, 2)
+JERK_MAX = 1 # m/s^3
 
-ANGULAR_VELOCITY_LOW = 0.1 # rad/s
-
-ACCELERATION_HIGH   = 0.5 # m/s^2
-ACCELERATION_MEDIUM = 0.5 # m/s^2
-ACCELERATION_LOW    = 0.5 # m/s^2
-
-JERK_HIGH   = 0.5 # m/s^3
-JERK_MEDIUM = 0.5 # m/s^3
-JERK_LOW    = 0.5 # m/s^3
-
-ENERGY_HIGH     = 3 # J
-ENERGY_MEDIUM   = 2 # J
-ENERGY_LOW      = 1 # J
 
