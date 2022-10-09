@@ -57,6 +57,7 @@ if __name__ == '__main__':
             agent.learn()
             observation = observation_
             #env.render()
+            time.sleep(cst.SAMPLING_RATE)
         scores.append(score)
         epsHistory.append(agent.epsilon)
 
