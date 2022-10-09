@@ -71,7 +71,7 @@ MOTOR_STEP = {DEGREE: _STEP_,
               DYNAMIXEL: _STEP_*(DYN_MAX/360)
             }
 
-MOTOR_MAX_SPEED = 234.27 * (np.pi/60) # rad/s 
+MOTOR_MAX_SPEED = 234.27 * (2*np.pi/60) # rad/s 
 
 ACTIONS = [-1, 0, 1]
 
