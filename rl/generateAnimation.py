@@ -19,16 +19,23 @@ print(robot)
 # pyplot.hold()
 # exit()
 
-fileName = "archive/motors-2022-10-07_18-50-42-937470(82_pts)_270"
+fileName = "archive/motors-2022-10-10_18-32-35-969879(82_pts)_30"
 f = open(fileName + ".traj", 'r')
 temp = f.read().splitlines()
 while temp[0][0] == "<":
     temp.pop(0)
 
 input_list = []
+color = []
 for myline in temp:
-    input_list.append(myline.split(cst.SEPARATOR))
+    split = myline.split(cst.SEPARATOR)
+    input_list.append(split[0:cst.NUMBER_OF_MOTOR])
     input_list[-1] = [float(x) for x in input_list[-1]]
+
+    t = cst.PALETTE[split[cst.NUMBER_OF_MOTOR]].toList()
+    t.append(int(split[cst.NUMBER_OF_MOTOR+1]))
+    t2 = tuple(ti/255 for ti in t)
+    color.append(t2)
 
 f.close()
 
@@ -52,8 +59,9 @@ robot.plot(
         np.array(input_list),
         backend='pyplot',
         dt=0.001,
-        movie=fileName+".gif",
-        block=True
+        movie=fileName+"2.gif",
+        block=True,
+        color=color
     )
 
 #pyplot.hold()

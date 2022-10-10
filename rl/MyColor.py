@@ -14,6 +14,12 @@ class MyColor:
     def toNum(self, white = 0):
         return (white << 24) | (self.red << 16)| (self.green << 8) | self.blue
 
+    def toList(self):
+        return [self.red, self.green, self.blue]
+    
+    def toTuple(self):
+        return (self.red, self.green, self.blue)
+
     def __str__(self):
         return "RGB(" + str(self.red) + ", " + str(self.green) + ", " + str(self.blue) + ")"
     def __unicode__(self):

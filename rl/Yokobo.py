@@ -10,6 +10,10 @@ class Yokobo():
         self.robot = cst.ROBOT
         self.unit = unit
         self.mass = mass
+
+        self.timer = 0
+        self.duration = -1
+        self.preTimer = 0
         
         self.motors = []
         for _ in range(nbrMotors):
@@ -17,14 +21,20 @@ class Yokobo():
         self.eeVelocity = []
         self.eeAcceleration = []
         self.eeJerk = []
-        self.eeEnergy = []    
+        self.eeEnergy = []
+
+        self.luminosity = [128]
+        self.OFF_LIGHT = list(cst.PALETTE)[0] 
+        self.color = [self.OFF_LIGHT]    
 
 # -- OPERATORS
     def __str__(self) -> str:
         text = ""
         for mot in self.motors:
             text += 'M' + str(mot.id) + ' : ' + str(mot.position()) + '    '
-        return text[:-4]
+
+        text += "LIGHT(" + self.color[-1] + ", " + str(self.luminosity[-1]) + ")"
+        return text
 
     def __len__(self):
         return len(self.motors)
@@ -51,12 +61,15 @@ class Yokobo():
 
         traj = []
         lengthTraj = -1
+        tempL = -1
         for mot in self.motors:
-            temp = mot.trajectory()
-            if len(temp) < lengthTraj: # if the size is not same (because the motor were out of range), it readjusts the size of the other trajectory by adding the position of the last point
-                temp.append(temp[-1])
-            traj.append(temp)
-            lengthTraj = len(temp)
+            tempL = len(mot.trajectory())
+            if tempL > lengthTraj:
+                lengthTraj = tempL
+
+        for mot in self.motors:
+            temp = cst.fitList(mot.trajectory(), lengthTraj)            
+            traj.append(temp)            
 
         return traj, lengthTraj
     
@@ -165,14 +178,14 @@ class Yokobo():
         if len(self.eeVelocity)<2:
             return
         else:
-            self.eeAcceleration.append((self.eeVelocity[-1]-self.eeVelocity[-2])/cst.SAMPLING_RATE)
+            self.eeAcceleration.append((self.eeVelocity[-1]-self.eeVelocity[-2])/self.duration)
         self._endEffectorJerk()
 
     def _endEffectorJerk(self): # (j_x, j_y, j_z)
         if len(self.eeAcceleration)<2:
             return
         else:
-            self.eeJerk.append((self.eeAcceleration[-1]-self.eeAcceleration[-2])/cst.SAMPLING_RATE)
+            self.eeJerk.append((self.eeAcceleration[-1]-self.eeAcceleration[-2])/self.duration)
 
     def _endEffectorEnergy(self): # (E_x, E_y, E_z)
         self.eeEnergy.append((self.mass/2) * np.power(self.eeVelocity[-1], 2))
@@ -187,7 +200,7 @@ class Yokobo():
         if isinstance(data, Boolean) and data == False:
             return False
         else:
-            return np.sqrt(np.power(data[0],2)+np.power(data[1],2)+np.power(data[2],2))
+            return float(np.sqrt(np.power(data[0],2)+np.power(data[1],2)+np.power(data[2],2)))
 
 
 # -- PUBLIC FUNCTIONS
@@ -198,7 +211,15 @@ class Yokobo():
         self.eeVelocity = []
         self.eeAcceleration = []
         self.eeJerk = []
-        self.eeEnergy = [] 
+        self.eeEnergy = []
+
+        self.timer = 0
+        self.duration = -1
+        self.preTimer = 0
+
+        self.luminosity = [128]
+        self.color = [self.OFF_LIGHT]
+        
 
     def move(self, positions):
         if len(positions) != len(self.motors):
@@ -210,8 +231,11 @@ class Yokobo():
             except ValueError: # out of range of the motor
                 raise ValueError("The position is out of range")
 
+        self.timer = time.perf_counter()
+        self.duration = self.timer - self.preTimer
         self.robot.q = self.position()
         self._endEffectorVelocity()
+        self.preTimer = self.timer
        
     def pad(self):
         pleasure, arousal, dominance = 0, 0, 0
@@ -223,8 +247,7 @@ class Yokobo():
         PAD_MIN = min(cst.PAD)
         PAD_MAX = max(cst.PAD)
 
-        print("acce: " + str(self.magnitudeEndEffectorAcceleration(True)))
-        print("jerk: " + str(jerk))
+        #print("acce: " + str(self.magnitudeEndEffectorAcceleration(True)))
         if jerk != False:
             if jerk > cst.JERK_MAX: # Since we cannot compute the maximum jerk
                 cst.JERK_MAX = jerk            
@@ -235,8 +258,7 @@ class Yokobo():
 
         M2_MIN = cst.MOTOR_MIN[self.unit][1]
         M2_MAX = cst.MOTOR_MAX[self.unit][1]
-        dominance = ((PAD_MAX-PAD_MIN)/(M2_MAX - M2_MIN)) * m2 + ((PAD_MIN * M2_MAX - PAD_MAX * M2_MIN)/(M2_MAX - M2_MIN))
-               
+        dominance = ((PAD_MAX-PAD_MIN)/(M2_MAX - M2_MIN)) * m2 + ((PAD_MIN * M2_MAX - PAD_MAX * M2_MIN)/(M2_MAX - M2_MIN))   
         
         # SECURITY CHECKS
         if pleasure     > PAD_MAX:   pleasure = PAD_MAX
@@ -247,4 +269,22 @@ class Yokobo():
         if dominance    < PAD_MIN:   dominance = PAD_MIN
 
         return [pleasure, arousal, dominance]
+
+    def light(self, color, luminosity):
+        colorChange = False
+        newColor = list(cst.PALETTE)[color]
+        if self.color[-1] != newColor and self.color[-1] != self.OFF_LIGHT and newColor != self.OFF_LIGHT: # to avoid brutal change of colour, beside switch on/off
+            colorChange = True
+        self.color.append(newColor)
+
+        outOfRange = False
+        self.luminosity.append(self.luminosity[-1] + luminosity)
+        if self.luminosity[-1] < 0:
+            self.luminosity[-1] = 0
+            outOfRange = True
+        elif self.luminosity[-1] > 255:
+            self.luminosity[-1] = 255
+            outOfRange = True
+
+        return colorChange, outOfRange
     

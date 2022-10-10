@@ -49,7 +49,9 @@ if __name__ == '__main__':
         score = 0
         done = False
         observation = env.reset()
+        j=0
         while not done:
+            j+=1
             action = agent.chooseAction(observation)
             observation_, reward, done, info = env.step(action)
             score += reward
@@ -58,6 +60,8 @@ if __name__ == '__main__':
             observation = observation_
             #env.render()
             time.sleep(cst.SAMPLING_RATE)
+            if j>=300:
+                done = True
         scores.append(score)
         epsHistory.append(agent.epsilon)
 

@@ -4,6 +4,9 @@ import math
 import numpy as np
 import roboticstoolbox as rtb
 
+def fitList(a, size):
+    return a + [a[-1]] * (size - len(a))
+
 # DEBUG
 FAKE_DATA = True
 
@@ -25,6 +28,8 @@ FC1_DIM = 256
 FC2_DIM = 256
 
 # STAE OF ACTIONS
+ACTIONS = [-1, 0, 1]
+
 PALETTE = {
     "OFF":      MyColor(0,0,0),
     "RED":      MyColor(255, 0, 0),
@@ -39,6 +44,8 @@ PALETTE = {
 }
 
 LUMINOSITY_STEP = 10 # bytes
+DIM_LIGHT = len(PALETTE) * len(ACTIONS)
+
 NUMBER_OF_MOTOR = 3
 
 DYN_MAX = 4095
@@ -72,8 +79,6 @@ MOTOR_STEP = {DEGREE: _STEP_,
             }
 
 MOTOR_MAX_SPEED = 234.27 * (2*np.pi/60) # rad/s 
-
-ACTIONS = [-1, 0, 1]
 
 # STATE OF ENVIRONMENT
 TEMPERATURE_MIN = -20 # °C
@@ -137,6 +142,9 @@ def TIME_REWARD_CONTINUOUS(t):
 REWARD_BAD_EMOTION = -10
 REWARD_GOOD_EMOTION = 10
 REWARD_MOTOR_OUT = -50
+
+REWARD_LIGHT_OUT = -50
+REWARD_LIGHT_COLOR_CHANGE = -20
 
 # NEP
 NEP_TOPIC = "yokobo_motor_rl"

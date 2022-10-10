@@ -14,6 +14,8 @@ import time
 import roboticstoolbox as rtb
 from datetime import datetime
 import os
+from DeepQNetwork import Agent
+import math
 
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
 
@@ -24,6 +26,9 @@ class YokoboEnv(Env):
         self.timer = 0
         self.file = -1
 
+        self.agentLight = Agent(gamma=0.99, epsilon=1.0, batchSize=64, nbrActions=cst.DIM_LIGHT,
+                epsEnd=0.01, inputDims=cst.DIM_PAD, lr=0.003)
+        
         # 8 inputs (states):
         #   1)      User's emotion (enumeration)
         #   2-4)    Robot's PAD (int)
@@ -36,6 +41,8 @@ class YokoboEnv(Env):
 
         # 3 actions per motors
         self.action_space = spaces.Discrete(pow(len(cst.ACTIONS), cst.NUMBER_OF_MOTOR),)
+        # 3 actions for luminosity, and 10 possible colours
+        self.actionLight_space = spaces.Discrete(len(cst.ACTIONS) * len(cst.PALETTE),)
 
         # Create a canvas to render the environment images upon 
         self.canvasShape = (cst.CAMERA_Y_SIZE, cst.CAMERA_X_SIZE)
@@ -50,6 +57,8 @@ class YokoboEnv(Env):
         self.emotion = -1
         self.PAD = [0, 0, 0]
         self.trajectory = [(0,0), (0,0)]
+
+        self.oldPad = [0, 0, 0]
 
         # self.motors = []
         # for i in range(cst.NUMBER_OF_MOTOR):
@@ -100,6 +109,7 @@ class YokoboEnv(Env):
         self.ep_return  = 0
 
         self.readData()
+        self.PAD = self.yokobo.pad()
 
         if self.trajectory[0] == (-1,-1):
             raise Exception("No body is interacting")
@@ -109,17 +119,18 @@ class YokoboEnv(Env):
 
         self.timer = time.perf_counter()
 
+        self.oldPad = self.PAD
+
         # return the observation
         #return self.canvas
         return self.dataExpanded
 
-    def readData(self):
+    def readData(self):        
         if cst.FAKE_DATA:
             self.data = self.createFakeData("random")
         else:
             self.data = self.nep.readData()
         self.emotion = self.data[0]
-        self.PAD = self.yokobo.pad()
         self.trajectory = self.data[2]
 
         traj = []
@@ -167,17 +178,34 @@ class YokoboEnv(Env):
         #     units += " " + mot.unit
 
         traj, lengthTraj = self.yokobo.trajectory()
+        #print("L-t: " + str(np.array(traj).shape) + " - L-l: " + str(len(self.yokobo.color)))
 
         if lengthTraj < thres:
             return
 
-        self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + ".traj", "a")
-        self.file.write("<units:" + self.yokobo.units() + ">\n")
+        traj2 = np.array(traj, dtype=object)
+        
+        noColor = ""
+        err = ""
+        try:            
+            traj3 = np.append(traj2, [self.yokobo.color, self.yokobo.luminosity], axis=0)
+        except ValueError:
+            err = "Traj shape: " + str(traj2.shape) + ' - color len: ' + str(len(self.yokobo.color)) + ' - luminosity len: ' + str(len(self.yokobo.luminosity))
+            print(err)
+            noColor = "-ColorAdded"
+            traj3 = np.append(traj2, [cst.fitList(self.yokobo.color, lengthTraj), cst.fitList(self.yokobo.luminosity, lengthTraj)], axis=0)          
+
+ 
+        self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + noColor + ".traj", "a")
+        self.file.write("<units:" + self.yokobo.units() + " - color luminosity>\n")
         if info != "":
             self.file.write("<" + info + ">\n")
+        if err != "":
+            self.file.write("< ERR: " + err + ">\n")
 
         #t_traj = np.array([self.motors[0].trajectory(),self.motors[1].trajectory(),self.motors[2].trajectory()]).T.tolist()
-        t_traj = np.array(traj).T.tolist()
+        t_traj = traj3.T.tolist()
+        print(traj3.T.shape)
 
         for position in t_traj:
             position = [str(int) for int in position]            
@@ -224,6 +252,7 @@ class YokoboEnv(Env):
     def step(self, action):
         # Flag that marks the termination of an episode
         done = False
+        doneLight = False
         
         # Assert that it is a valid action 
         assert self.action_space.contains(action), "Invalid Action"
@@ -231,6 +260,7 @@ class YokoboEnv(Env):
        
         # Reward for executing a step.
         reward = 1
+        rewardLight = 1
         reward += cst.TIME_REWARD_CONTINUOUS(time.perf_counter() - self.timer)
 
         # for i in range(len(self.motors)):
@@ -247,19 +277,32 @@ class YokoboEnv(Env):
             self.yokobo.move(pos)
         except ValueError: # out of range of the motor
             reward += cst.REWARD_MOTOR_OUT
-            done = True      
+            #done = True      
 
+        outOfRange = False
+        colorChange = False
+        self.PAD = self.yokobo.pad()        
+        actionLight, outOfRange, colorChange = self.lightAction()
         self.readData()
 
         if self.emotion in cst.EMOTION_BAD:
-            reward += cst.REWARD_BAD_EMOTION 
+            reward += cst.REWARD_BAD_EMOTION
+            rewardLight += cst.REWARD_BAD_EMOTION
         if self.emotion in cst.EMOTION_GOOD:
             reward += cst.REWARD_GOOD_EMOTION 
+            rewardLight += cst.REWARD_GOOD_EMOTION
+
+        if outOfRange:
+            rewardLight += cst.REWARD_LIGHT_OUT
+        if colorChange: # to avoid the colour to change too often
+            rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE 
 
         if self.trajectory[0] == (-1,-1): # If the person left
             duration = time.perf_counter() - self.timer
             reward += cst.TIME_REWARD(duration)
+            rewardLight += cst.TIME_REWARD(duration)
             done = True
+            doneLight = True
         
         # Increment the episodic return
         self.ep_return += 1
@@ -267,8 +310,29 @@ class YokoboEnv(Env):
         # Draw elements on the canvas
         self.drawElementsOnCanvas()
 
+        self.lightLearn(actionLight, rewardLight, doneLight)
+
+        #print(self.yokobo)
         #return self.canvas, reward, done, []
         return self.dataExpanded, reward, done, []
+
+    def lightAction(self):
+        action = self.agentLight.chooseAction(np.array(self.PAD))
+        assert self.actionLight_space.contains(action), "Invalid Action"
+
+        outOfRange = False
+        colorChange = False
+
+        colorChange, outOfRange = self.yokobo.light(math.floor(action/len(cst.ACTIONS)), cst.ACTIONS[action%len(cst.ACTIONS)] * cst.LUMINOSITY_STEP)
+
+        return action, outOfRange, colorChange
+
+    def lightLearn(self, action, reward, done):
+        self.agentLight.storeTransition(self.oldPad, action, reward, self.PAD, done)
+        self.agentLight.learn()
+        self.oldPad = self.PAD
+
+
 
 
 # TEST
