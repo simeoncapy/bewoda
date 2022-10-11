@@ -19,7 +19,7 @@ print(robot)
 # pyplot.hold()
 # exit()
 
-fileName = "archive/motors-2022-10-10_18-32-35-969879(82_pts)_30"
+fileName = "archive/motors-2022-10-10_23-40-45-814919(301_pts)_499"
 f = open(fileName + ".traj", 'r')
 temp = f.read().splitlines()
 while temp[0][0] == "<":
@@ -59,7 +59,7 @@ robot.plot(
         np.array(input_list),
         backend='pyplot',
         dt=0.001,
-        movie=fileName+"2.gif",
+        movie=fileName+".gif",
         block=True,
         color=color
     )

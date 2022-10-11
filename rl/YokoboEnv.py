@@ -276,8 +276,9 @@ class YokoboEnv(Env):
         try:
             self.yokobo.move(pos)
         except ValueError: # out of range of the motor
-            reward += cst.REWARD_MOTOR_OUT
-            #done = True      
+            #reward += cst.REWARD_MOTOR_OUT
+            #done = True 
+            pass     
 
         outOfRange = False
         colorChange = False
@@ -293,7 +294,8 @@ class YokoboEnv(Env):
             rewardLight += cst.REWARD_GOOD_EMOTION
 
         if outOfRange:
-            rewardLight += cst.REWARD_LIGHT_OUT
+            # rewardLight += cst.REWARD_LIGHT_OUT
+            pass
         if colorChange: # to avoid the colour to change too often
             rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE 
 

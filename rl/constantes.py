@@ -121,7 +121,7 @@ DIM_PAD = 3 # P, A and D
 # REWARD
 def TIME_REWARD(t): # time in second
     if(t >= 0 and t < 10):
-        return -100
+        return 0
     elif(t >= 10 and t < 30):
         return -50
     elif(t >= 30 and t < 60):
@@ -129,13 +129,13 @@ def TIME_REWARD(t): # time in second
     elif(t >= 60 and t < 120):
         return 50
     elif(t>= 120):
-        return 0
+        return -5
     else:
         return False
 
 def TIME_REWARD_CONTINUOUS(t):
     if(t >= 30 and t < 120):
-        return 2
+        return 1
     else:
         return 0
 
@@ -176,5 +176,26 @@ MASS = (50 / 1000) # kg
 VELOCITY_MAX = np.sqrt(2*np.power(MOTOR_2_ECCENTRIC, 2) + np.power(YOKOBO_BOWL_HEIGH, 2)) * MOTOR_MAX_SPEED
 ENERGY_MAX = (MASS / 2) * np.power(VELOCITY_MAX, 2)
 JERK_MAX = 1 # m/s^3
+
+# neutral, "surprise",
+EMOTION_PAD_COLOR = {
+    "angry":        [(-0.51,    0.59,   0.25),  "RED"],
+    "bored":        [(-0.65,   -0.62,  -0.33),  "WHITE"], # GRAY
+    "curious":      [( 0.22,    0.62,  -0.01)],
+    "dignified":    [( 0.55,    0.22,   0.61)],                 # digne
+    "elated":       [( 0.50,    0.42,   0.23),  "YELLOW"],      # fou de joie
+    "hungry":       [(-0.44,    0.14,  -0.21),  "ORANGE"],
+    "inhibited":    [(-0.54,   -0.04,  -0.41)],                 # réservé
+    "loved":        [( 0.87,    0.54,  -0.18),  "PINK"],
+    "puzzled":      [(-0.41,    0.48,  -0.33)],                 # perplexe
+    "sleepy":       [( 0.20,   -0.70,  -0.44),  "BLUE"],
+    "unconcerned":  [(-0.13,   -0.41,   0.08)],                 # détaché
+    "violent":      [(-0.50,    0.62,   0.38),  "RED"],
+    "sad":          [(-0.63,   -0.27,  -0.33),  "VIOLET"],
+    "happy":        [( 0.81,    0.51,   0.46),  "YELLOW"],
+    "surprised":    [( 0.40,    0.67,  -0.13)],
+    "fearful":      [(-0.64,    0.60,  -0.43),  "VIOLET"],
+    "neutral":      [( 0.00,    0.00,   0.00),  "WHITE"]
+}
 
 
