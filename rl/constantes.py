@@ -123,11 +123,11 @@ def TIME_REWARD(t): # time in second
     if(t >= 0 and t < 10):
         return 0
     elif(t >= 10 and t < 30):
-        return -50
+        return -5
     elif(t >= 30 and t < 60):
-        return 25
+        return 2
     elif(t >= 60 and t < 120):
-        return 50
+        return 5
     elif(t>= 120):
         return -5
     else:
@@ -139,12 +139,17 @@ def TIME_REWARD_CONTINUOUS(t):
     else:
         return 0
 
-REWARD_BAD_EMOTION = -10
-REWARD_GOOD_EMOTION = 10
-REWARD_MOTOR_OUT = -50
+REWARD_BAD_EMOTION = -1
+REWARD_GOOD_EMOTION = 1
 
-REWARD_LIGHT_OUT = -50
-REWARD_LIGHT_COLOR_CHANGE = -20
+REWARD_NOT_MOVING = -2
+
+REWARD_MOTOR_OUT = -5
+
+REWARD_LIGHT_OUT = -5
+REWARD_LIGHT_COLOR_CHANGE = -1
+REWARD_LIGHT_MATCH = 1
+REWARD_LIGHT_NOT_MATCH = -1
 
 # NEP
 NEP_TOPIC = "yokobo_motor_rl"
@@ -171,31 +176,38 @@ ROBOT = rtb.DHRobot([
 NBR_POINT_DERIVATIVE_CALCULATION = 10 
 SAMPLING_RATE = 0.001
 AVERAGE_SIZE = 10
+AVERAGE_SIZE_VELOCITY_CHECK = 50
 MASS = (50 / 1000) # kg
 
 VELOCITY_MAX = np.sqrt(2*np.power(MOTOR_2_ECCENTRIC, 2) + np.power(YOKOBO_BOWL_HEIGH, 2)) * MOTOR_MAX_SPEED
 ENERGY_MAX = (MASS / 2) * np.power(VELOCITY_MAX, 2)
 JERK_MAX = 1 # m/s^3
+VELOCITY_LOW = 0.001 # m/s
 
 # neutral, "surprise",
 EMOTION_PAD_COLOR = {
-    "angry":        [(-0.51,    0.59,   0.25),  "RED"],
-    "bored":        [(-0.65,   -0.62,  -0.33),  "WHITE"], # GRAY
-    "curious":      [( 0.22,    0.62,  -0.01)],
-    "dignified":    [( 0.55,    0.22,   0.61)],                 # digne
-    "elated":       [( 0.50,    0.42,   0.23),  "YELLOW"],      # fou de joie
-    "hungry":       [(-0.44,    0.14,  -0.21),  "ORANGE"],
-    "inhibited":    [(-0.54,   -0.04,  -0.41)],                 # réservé
-    "loved":        [( 0.87,    0.54,  -0.18),  "PINK"],
-    "puzzled":      [(-0.41,    0.48,  -0.33)],                 # perplexe
-    "sleepy":       [( 0.20,   -0.70,  -0.44),  "BLUE"],
-    "unconcerned":  [(-0.13,   -0.41,   0.08)],                 # détaché
-    "violent":      [(-0.50,    0.62,   0.38),  "RED"],
-    "sad":          [(-0.63,   -0.27,  -0.33),  "VIOLET"],
-    "happy":        [( 0.81,    0.51,   0.46),  "YELLOW"],
-    "surprised":    [( 0.40,    0.67,  -0.13)],
-    "fearful":      [(-0.64,    0.60,  -0.43),  "VIOLET"],
-    "neutral":      [( 0.00,    0.00,   0.00),  "WHITE"]
+    "angry":        [np.array([-0.51,    0.59,   0.25]),  "RED"],
+    "bored":        [np.array([-0.65,   -0.62,  -0.33]),  "WHITE"], # GRAY
+    "curious":      [np.array([ 0.22,    0.62,  -0.01]),  "GREEN"],
+    #"dignified":    [np.array([ 0.55,    0.22,   0.61])],                 # digne
+    "elated":       [np.array([ 0.50,    0.42,   0.23]),  "YELLOW"],      # fou de joie
+    "hungry":       [np.array([-0.44,    0.14,  -0.21]),  "ORANGE"],
+    #"inhibited":    [np.array([-0.54,   -0.04,  -0.41])],                 # réservé
+    "loved":        [np.array([ 0.87,    0.54,  -0.18]),  "PINK"],
+    #"puzzled":      [np.array([-0.41,    0.48,  -0.33])],                 # perplexe
+    "sleepy":       [np.array([ 0.20,   -0.70,  -0.44]),  "BLUE"],
+    #"unconcerned":  [np.array([-0.13,   -0.41,   0.08])],                 # détaché
+    "violent":      [np.array([-0.50,    0.62,   0.38]),  "RED"],
+    "sad":          [np.array([-0.63,   -0.27,  -0.33]),  "VIOLET"],
+    "happy":        [np.array([ 0.81,    0.51,   0.46]),  "YELLOW"],
+    "surprised":    [np.array([ 0.40,    0.67,  -0.13]),  "WHITE"],
+    "fearful":      [np.array([-0.64,    0.60,  -0.43]),  "VIOLET"],
+    "relaxed":      [np.array([ 0.68,   -0.46,   0.06]),  "GREEN"],
+    "neutral":      [np.array([ 0.00,    0.00,   0.00]),  "WHITE"]
 }
+# np.linalg.norm(a-b)
 
-
+RANDOM_DATA_EPSILON = 0.3
+RANDOM_MACTH_EMOTION = 0.4
+RANDOM_DISTANCE_X = 20 # px
+RANDOM_DISTANCE_Y = 20 # px

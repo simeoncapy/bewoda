@@ -60,7 +60,7 @@ if __name__ == '__main__':
             observation = observation_
             #env.render()
             time.sleep(cst.SAMPLING_RATE)
-            if j>=300:
+            if j>=300: # FOR TEST
                 done = True
         scores.append(score)
         epsHistory.append(agent.epsilon)

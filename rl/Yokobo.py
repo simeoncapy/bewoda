@@ -135,8 +135,8 @@ class Yokobo():
 
 
     def magnitudeEndEffectorVelocity(self, average=False):
-        if average:
-            data = self.averageEndEffectorVelocity()
+        if not isinstance(average, Boolean):
+            data = self.averageEndEffectorVelocity(average)
         else:
             data = self.eeVelocity[-1]
         return self._magnitudeEndEffector(data)

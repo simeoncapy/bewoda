@@ -19,13 +19,14 @@ print(robot)
 # pyplot.hold()
 # exit()
 
-fileName = "archive/motors-2022-10-10_23-40-45-814919(301_pts)_499"
+fileName = "archive/motors-2022-10-12_15-51-54-258123(301_pts)_292"
 f = open(fileName + ".traj", 'r')
 temp = f.read().splitlines()
 while temp[0][0] == "<":
     temp.pop(0)
 
 input_list = []
+input_total = []
 color = []
 for myline in temp:
     split = myline.split(cst.SEPARATOR)
@@ -36,6 +37,9 @@ for myline in temp:
     t.append(int(split[cst.NUMBER_OF_MOTOR+1]))
     t2 = tuple(ti/255 for ti in t)
     color.append(t2)
+
+    input_total.append(split[0:cst.NUMBER_OF_MOTOR] + [int(split[cst.NUMBER_OF_MOTOR+1])/255])
+    input_total[-1] = [float(x) for x in input_total[-1]]
 
 f.close()
 
@@ -50,10 +54,13 @@ f.close()
 # plt.show()
 # pyplot.hold()
 
-# print(np.array(input_list))
-# plt.plot(np.array(input_list))
-# plt.legend(["M1", "M2", "M3"])
-# plt.show()
+
+#print(np.array(input_total))
+plt.plot(np.array(input_total))
+plt.legend(["M1", "M2", "M3", "L"])
+plt.show()
+
+exit()
 
 robot.plot(        
         np.array(input_list),

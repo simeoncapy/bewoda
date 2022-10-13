@@ -54,9 +54,11 @@ class YokoboEnv(Env):
         # Define elements present inside the environment
         self.data = []
         self.dataExpanded = []
-        self.emotion = -1
+        self.emotion = 0
         self.PAD = [0, 0, 0]
         self.trajectory = [(0,0), (0,0)]
+
+        self.padList = []
 
         self.oldPad = [0, 0, 0]
 
@@ -107,9 +109,9 @@ class YokoboEnv(Env):
 
         # Reset the reward
         self.ep_return  = 0
-
+        self.padList = []
+        #self.PAD = self.yokobo.pad()
         self.readData()
-        self.PAD = self.yokobo.pad()
 
         if self.trajectory[0] == (-1,-1):
             raise Exception("No body is interacting")
@@ -120,23 +122,26 @@ class YokoboEnv(Env):
         self.timer = time.perf_counter()
 
         self.oldPad = self.PAD
-
+        
         # return the observation
         #return self.canvas
         return self.dataExpanded
 
-    def readData(self):        
+    def readData(self, updatePad = True):        
         if cst.FAKE_DATA:
             self.data = self.createFakeData("random")
         else:
             self.data = self.nep.readData()
         self.emotion = self.data[0]
+        if updatePad:
+            self.PAD = self.yokobo.pad()
         self.trajectory = self.data[2]
 
         traj = []
         for pt in self.trajectory: 
             traj += list(pt)
 
+        self.padList.append(self.PAD)
         self.dataExpanded = [self.emotion] + self.PAD + traj
 
     def render(self, mode = "motor"):
@@ -186,7 +191,9 @@ class YokoboEnv(Env):
         traj2 = np.array(traj, dtype=object)
         
         noColor = ""
+        noPAD = ""
         err = ""
+        err2 = ""
         try:            
             traj3 = np.append(traj2, [self.yokobo.color, self.yokobo.luminosity], axis=0)
         except ValueError:
@@ -195,17 +202,28 @@ class YokoboEnv(Env):
             noColor = "-ColorAdded"
             traj3 = np.append(traj2, [cst.fitList(self.yokobo.color, lengthTraj), cst.fitList(self.yokobo.luminosity, lengthTraj)], axis=0)          
 
- 
-        self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + noColor + ".traj", "a")
-        self.file.write("<units:" + self.yokobo.units() + " - color luminosity>\n")
+        tabPad = np.array(cst.fitList(self.padList, lengthTraj)).T
+        try:            
+            traj3 = np.append(traj3, [tabPad[0], tabPad[1], tabPad[2]], axis=0)
+        except ValueError as e:
+            err2 = "Error include PAD tab (size: " + str(len(tabPad)) + "), trajectory length: " + str(lengthTraj) + " " + str(e)
+            noPAD = "-noPAD"
+            #print(traj3)
+            print(err2)
+
+
+        self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + noColor + noPAD + ".traj", "a")
+        self.file.write("<units:" + self.yokobo.units() + " - color luminosity - PAD>\n")
         if info != "":
             self.file.write("<" + info + ">\n")
         if err != "":
             self.file.write("< ERR: " + err + ">\n")
+        if err2 != "":
+            self.file.write("< ERR: " + err2 + ">\n")
 
         #t_traj = np.array([self.motors[0].trajectory(),self.motors[1].trajectory(),self.motors[2].trajectory()]).T.tolist()
         t_traj = traj3.T.tolist()
-        print(traj3.T.shape)
+        #print(traj3.T.shape)
 
         for position in t_traj:
             position = [str(int) for int in position]            
@@ -213,10 +231,30 @@ class YokoboEnv(Env):
         
 
     def createFakeData(self, type = "random"):
-        if type == "random":
-           return [random.randint(0, len(cst.EMOTION)-1),
-                  [random.uniform(min(cst.PAD), max(cst.PAD)), random.uniform(min(cst.PAD), max(cst.PAD)), random.uniform(min(cst.PAD), max(cst.PAD))],
-                  [(random.randint(0, cst.CAMERA_X_SIZE), random.randint(0, cst.CAMERA_Y_SIZE)), (random.randint(0, cst.CAMERA_X_SIZE), random.randint(0, cst.CAMERA_Y_SIZE))]]
+        if type == "random":            
+            emo = self.emotion
+            if random.uniform(0,1) < cst.RANDOM_DATA_EPSILON:
+                emo = random.randint(0, len(cst.EMOTION)-1)
+            
+            if self.padToEmotion() in cst.EMOTION:
+                if random.uniform(0,1) < cst.RANDOM_MACTH_EMOTION:
+                    emo = cst.EMOTION.index(self.padToEmotion())
+
+            # ---
+
+            fomerArrivalPoint = self.trajectory[1]
+            newArrivalPoint = [fomerArrivalPoint[0] + random.randint(-cst.RANDOM_DISTANCE_X, cst.RANDOM_DISTANCE_X),
+                               fomerArrivalPoint[1] + random.randint(-cst.RANDOM_DISTANCE_Y, cst.RANDOM_DISTANCE_Y)
+                            ]
+            if newArrivalPoint[0] > cst.CAMERA_X_SIZE: newArrivalPoint[0] = cst.CAMERA_X_SIZE
+            if newArrivalPoint[0] < 0                : newArrivalPoint[0] = 0
+            if newArrivalPoint[1] > cst.CAMERA_Y_SIZE: newArrivalPoint[1] = cst.CAMERA_Y_SIZE
+            if newArrivalPoint[1] < 0                : newArrivalPoint[1] = 0
+            
+            return [emo,
+                  [random.uniform(min(cst.PAD), max(cst.PAD)), random.uniform(min(cst.PAD), max(cst.PAD)), random.uniform(min(cst.PAD), max(cst.PAD))], # PAD not used anymore
+                  [fomerArrivalPoint, tuple(newArrivalPoint)]]
+                  # (random.randint(0, cst.CAMERA_X_SIZE), random.randint(0, cst.CAMERA_Y_SIZE)), (random.randint(0, cst.CAMERA_X_SIZE), random.randint(0, cst.CAMERA_Y_SIZE))
         else:
             return np.zeros(self.observation_shape)
 
@@ -280,29 +318,26 @@ class YokoboEnv(Env):
             #done = True 
             pass     
 
-        outOfRange = False
         colorChange = False
         self.PAD = self.yokobo.pad()        
-        actionLight, outOfRange, colorChange = self.lightAction()
-        self.readData()
+        actionLight, colorChange = self.lightAction()
+        self.readData(False)
 
         if self.emotion in cst.EMOTION_BAD:
             reward += cst.REWARD_BAD_EMOTION
-            rewardLight += cst.REWARD_BAD_EMOTION
         if self.emotion in cst.EMOTION_GOOD:
             reward += cst.REWARD_GOOD_EMOTION 
-            rewardLight += cst.REWARD_GOOD_EMOTION
 
-        if outOfRange:
-            # rewardLight += cst.REWARD_LIGHT_OUT
-            pass
-        if colorChange: # to avoid the colour to change too often
-            rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE 
+        if self.yokobo.magnitudeEndEffectorVelocity(cst.AVERAGE_SIZE_VELOCITY_CHECK) < cst.VELOCITY_LOW:
+            reward += cst.REWARD_NOT_MOVING
+
+        rewardLight += self.lightReward(colorChange)
+       
 
         if self.trajectory[0] == (-1,-1): # If the person left
             duration = time.perf_counter() - self.timer
             reward += cst.TIME_REWARD(duration)
-            rewardLight += cst.TIME_REWARD(duration)
+            #rewardLight += cst.TIME_REWARD(duration)
             done = True
             doneLight = True
         
@@ -327,12 +362,37 @@ class YokoboEnv(Env):
 
         colorChange, outOfRange = self.yokobo.light(math.floor(action/len(cst.ACTIONS)), cst.ACTIONS[action%len(cst.ACTIONS)] * cst.LUMINOSITY_STEP)
 
-        return action, outOfRange, colorChange
+        return action, colorChange
+
+    def lightReward(self, colorChange):
+        rewardLight = 0
+        if colorChange: # to avoid the colour to change too often
+            rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE
+
+        emo = self.padToEmotion()
+
+        if cst.EMOTION_PAD_COLOR[emo][1] == self.yokobo.color:
+            rewardLight += cst.REWARD_LIGHT_MATCH
+        else:
+            rewardLight += cst.REWARD_LIGHT_NOT_MATCH
+
+        return rewardLight
 
     def lightLearn(self, action, reward, done):
         self.agentLight.storeTransition(self.oldPad, action, reward, self.PAD, done)
         self.agentLight.learn()
         self.oldPad = self.PAD
+
+    def padToEmotion(self):
+        norm = float('inf')
+        for emotion, padEmo in cst.EMOTION_PAD_COLOR.items():
+            newNorm = np.linalg.norm(padEmo[0]-self.PAD)
+            if newNorm < norm:
+                norm = newNorm
+                emo = emotion
+
+        return emo
+
 
 
 
