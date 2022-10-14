@@ -19,7 +19,7 @@ print(robot)
 # pyplot.hold()
 # exit()
 
-fileName = "archive/motors-2022-10-12_15-51-54-258123(301_pts)_292"
+fileName = "archive/motors-2022-10-12_22-35-38-511290(301_pts)_499"
 f = open(fileName + ".traj", 'r')
 temp = f.read().splitlines()
 while temp[0][0] == "<":
@@ -56,11 +56,11 @@ f.close()
 
 
 #print(np.array(input_total))
-plt.plot(np.array(input_total))
-plt.legend(["M1", "M2", "M3", "L"])
-plt.show()
+# plt.plot(np.array(input_total))
+# plt.legend(["M1", "M2", "M3", "L"])
+# plt.show()
 
-exit()
+# exit()
 
 robot.plot(        
         np.array(input_list),

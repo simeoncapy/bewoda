@@ -318,9 +318,9 @@ class YokoboEnv(Env):
             #done = True 
             pass     
 
-        colorChange = False
+        closeColor = False
         self.PAD = self.yokobo.pad()        
-        actionLight, colorChange = self.lightAction()
+        actionLight, closeColor = self.lightAction()
         self.readData(False)
 
         if self.emotion in cst.EMOTION_BAD:
@@ -331,7 +331,7 @@ class YokoboEnv(Env):
         if self.yokobo.magnitudeEndEffectorVelocity(cst.AVERAGE_SIZE_VELOCITY_CHECK) < cst.VELOCITY_LOW:
             reward += cst.REWARD_NOT_MOVING
 
-        rewardLight += self.lightReward(colorChange)
+        rewardLight += self.lightReward(closeColor)
        
 
         if self.trajectory[0] == (-1,-1): # If the person left
@@ -359,15 +359,23 @@ class YokoboEnv(Env):
 
         outOfRange = False
         colorChange = False
+        closeColor = False
 
-        colorChange, outOfRange = self.yokobo.light(math.floor(action/len(cst.ACTIONS)), cst.ACTIONS[action%len(cst.ACTIONS)] * cst.LUMINOSITY_STEP)
+        colorChange, outOfRange, closeColor = self.yokobo.light(math.floor(action/len(cst.ACTIONS)), cst.ACTIONS[action%len(cst.ACTIONS)] * cst.LUMINOSITY_STEP)
 
-        return action, colorChange
+        return action, closeColor
 
-    def lightReward(self, colorChange):
+    def lightReward(self, closeColor):
         rewardLight = 0
-        if colorChange: # to avoid the colour to change too often
+        #if colorChange: # to avoid the colour to change too often
+        #    rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE
+
+        if closeColor:
+            rewardLight += cst.REWARD_LIGHT_CLOSE_COLOR
+        if self.yokobo.colorFifo.alwaysChange():
             rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE
+        elif self.yokobo.colorFifo.same(self.yokobo.OFF_LIGHT):
+            rewardLight + cst.REWARD_LIGHT_ALWAYS_OFF
 
         emo = self.padToEmotion()
 

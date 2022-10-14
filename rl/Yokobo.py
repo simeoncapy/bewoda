@@ -4,6 +4,7 @@ import roboticstoolbox as rtb
 from Motor import *
 import warnings
 import numpy as np
+from MyFifo import *
 
 class Yokobo():
     def __init__(self, unit=cst.RADIAN, nbrMotors=cst.NUMBER_OF_MOTOR, mass=cst.MASS):
@@ -25,7 +26,9 @@ class Yokobo():
 
         self.luminosity = [128]
         self.OFF_LIGHT = list(cst.PALETTE)[0] 
-        self.color = [self.OFF_LIGHT]    
+        self.color = [self.OFF_LIGHT]
+        self.colorFifo = MyFifo(cst.LIGHT_SAMPLING_SIZE)
+        self.colorFifo.add(self.OFF_LIGHT)    
 
 # -- OPERATORS
     def __str__(self) -> str:
@@ -219,6 +222,8 @@ class Yokobo():
 
         self.luminosity = [128]
         self.color = [self.OFF_LIGHT]
+        self.colorFifo.reset()
+        self.colorFifo.add(self.OFF_LIGHT)
         
 
     def move(self, positions):
@@ -272,10 +277,17 @@ class Yokobo():
 
     def light(self, color, luminosity):
         colorChange = False
-        newColor = list(cst.PALETTE)[color]
+        closeColor = False
+        palToList = list(cst.PALETTE)
+        newColor = palToList[color]
         if self.color[-1] != newColor and self.color[-1] != self.OFF_LIGHT and newColor != self.OFF_LIGHT: # to avoid brutal change of colour, beside switch on/off
             colorChange = True
+        previousColorId = palToList.index(self.color[-1])
+        if color == (previousColorId-1) or color == (previousColorId+1):
+            closeColor = True
+
         self.color.append(newColor)
+        self.colorFifo.append(newColor)
 
         outOfRange = False
         self.luminosity.append(self.luminosity[-1] + luminosity)
@@ -286,5 +298,5 @@ class Yokobo():
             self.luminosity[-1] = 255
             outOfRange = True
 
-        return colorChange, outOfRange
+        return colorChange, outOfRange, closeColor
     
