@@ -80,15 +80,24 @@ dbn.addArc(x0, yt)
 dbn.addArc(y0, xt)
 dbn.addArc(y0, yt)
 
-print(dbn.cpt("W0"))
+print(dbn.cpt("xt"))
+
+
+
+print("before setting CPT")
+dbn.generateCPTs()
+print("after setting CPT")
 
 gum.saveBN(dbn,cst.DBN_FILE)
+dbn.saveO3PRM(cst.DBN_FILE + ".prm")
 
 ie=gum.LazyPropagation(dbn)
 
+print("Before prior")
 ie.setEvidence({'Tin0': 8, 'Tout0': 4, "Hin0": 4, "Hout0": 5, "AP0": 4, "C0": 3})
 ie.makeInference()
-ie.posterior("W0")
+print(ie.posterior("W0"))
+print("end")
 
 
 

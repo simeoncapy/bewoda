@@ -2,3 +2,4 @@
 rl/temp.py
 rl/data/*
 rl/__pycache__/*
+bayesian/network/*

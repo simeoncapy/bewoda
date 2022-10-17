@@ -211,6 +211,8 @@ EMOTION_PAD_COLOR = {
 }
 # np.linalg.norm(a-b)
 
+print(list(EMOTION_PAD_COLOR))
+
 RANDOM_DATA_EPSILON = 0.3
 RANDOM_MACTH_EMOTION = 0.4
 RANDOM_DISTANCE_X = 20 # px
