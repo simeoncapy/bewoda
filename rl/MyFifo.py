@@ -3,6 +3,13 @@ class MyFifo:
         self.fifo = [init] * maxSize
         self.maxSize = maxSize
 
+    def __str__(self) -> str:
+        text = "["
+        for i in range(1, len(self.fifo)+1):
+            text += "(t-{t}): {val};\t".format(t = i, val = str(self.fifo[-i]))
+
+        return text[:-2] + "]" # remove the last tab and semi-colon
+
     def add(self, data):
         self.fifo.append(data)
         if len(self.fifo) > self.maxSize:
@@ -22,6 +29,9 @@ class MyFifo:
 
     def read(self):
         return self.fifo
+
+    def last(self):
+        return self.fifo[-1]
 
     def __getitem__(self, arg):
         if arg >= self.maxSize or arg < 0:

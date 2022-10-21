@@ -370,12 +370,20 @@ class YokoboEnv(Env):
         #if colorChange: # to avoid the colour to change too often
         #    rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE
 
+        print(self.yokobo.colorFifo)
+        print("close color: " + str(closeColor))
+
         if closeColor:
             rewardLight += cst.REWARD_LIGHT_CLOSE_COLOR
         if self.yokobo.colorFifo.alwaysChange():
             rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE
+            print("Color change")
         elif self.yokobo.colorFifo.same():
-            rewardLight + cst.REWARD_LIGHT_SAME
+            rewardLight += cst.REWARD_LIGHT_SAME
+            print("Color same")
+
+        if self.yokobo.luminosityFifo.same():
+            rewardLight += cst.REWARD_LIGHT_SAME
 
         emo = self.padToEmotion()
 

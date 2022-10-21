@@ -24,11 +24,15 @@ class Yokobo():
         self.eeJerk = []
         self.eeEnergy = []
 
-        self.luminosity = [128]
-        self.OFF_LIGHT = list(cst.PALETTE)[0] 
+        
+        self.OFF_LIGHT = list(cst.PALETTE)[0]
+         
         self.color = [self.OFF_LIGHT]
         self.colorFifo = MyFifo(cst.LIGHT_SAMPLING_SIZE)
-        self.colorFifo.add(self.OFF_LIGHT)    
+        self.colorFifo.add(self.OFF_LIGHT)
+        self.luminosity = [128]
+        self.luminosityFifo = MyFifo(cst.LIGHT_SAMPLING_SIZE)
+        self.luminosityFifo.add(128)    
 
 # -- OPERATORS
     def __str__(self) -> str:
@@ -224,6 +228,8 @@ class Yokobo():
         self.color = [self.OFF_LIGHT]
         self.colorFifo.reset()
         self.colorFifo.add(self.OFF_LIGHT)
+        self.luminosityFifo.reset()
+        self.luminosityFifo.add(128)
         
 
     def move(self, positions):
@@ -298,5 +304,6 @@ class Yokobo():
             self.luminosity[-1] = 255
             outOfRange = True
 
+        self.luminosityFifo.append(self.luminosity[-1])
         return colorChange, outOfRange, closeColor
     
