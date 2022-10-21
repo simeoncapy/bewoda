@@ -10,7 +10,8 @@ valueTemp =     ["cold", "warm", "hot"]
 valueHumidity = ["dry", "normal", "humid"]
 valueAP =       ["low-pressure", "anticyclone"]
 valueCo2 =      ["good", "medium", "bad"]
-valueTime =     list(range(0,                             24 + cst.TIME_STEP,                                             cst.TIME_STEP))
+valueTime =     list(range(0, 24 + cst.TIME_STEP, cst.TIME_STEP))
+valueWeather =  ["sunny", "clear night", "cloudy", "rainy", "snowy"]
 
 emotionFromPad = list(cst.EMOTION_PAD_COLOR)
 
@@ -19,7 +20,8 @@ tin0 = dbn.add(gum.LabelizedVariable("Tin0", "Tin0", valueTemp))
 #tout0 = dbn.add(gum.LabelizedVariable("Tout0","Tout0", valueTemp))
 hin0 = dbn.add(gum.LabelizedVariable("Hin0","Hin0", valueHumidity))
 #hout0 = dbn.add(gum.LabelizedVariable("Hout0","Hout0", valueHumidity))
-ap0 = dbn.add(gum.LabelizedVariable("AP0","AP0", valueAP))
+#ap0 = dbn.add(gum.LabelizedVariable("AP0","AP0", valueAP))
+w0 = dbn.add(gum.LabelizedVariable("W0","W0", valueWeather))
 c0 = dbn.add(gum.LabelizedVariable("C0","C0", valueCo2))
 t0 = dbn.add(gum.IntegerVariable("t0","t0", valueTime))
 e0 = dbn.add(gum.LabelizedVariable("E0","E0", cst.EMOTION))
@@ -32,7 +34,8 @@ dbn.addArc(tin0, et)
 #dbn.addArc(tout0, et)
 dbn.addArc(hin0, et)
 #dbn.addArc(hout0, et)
-dbn.addArc(ap0, et)
+#dbn.addArc(ap0, et)
+dbn.addArc(w0, et)
 dbn.addArc(c0, et)
 dbn.addArc(e0, et)
 dbn.addArc(t0, et)
