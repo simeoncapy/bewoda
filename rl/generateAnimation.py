@@ -19,7 +19,7 @@ print(robot)
 # pyplot.hold()
 # exit()
 
-fileName = "archive/motors-2022-10-12_22-35-38-511290(301_pts)_499"
+fileName = "archive/motors-2022-10-21_15-48-39-815749(301_pts)_499"
 f = open(fileName + ".traj", 'r')
 temp = f.read().splitlines()
 while temp[0][0] == "<":
@@ -27,7 +27,9 @@ while temp[0][0] == "<":
 
 input_list = []
 input_total = []
+
 color = []
+pad = []
 for myline in temp:
     split = myline.split(cst.SEPARATOR)
     input_list.append(split[0:cst.NUMBER_OF_MOTOR])
@@ -38,8 +40,12 @@ for myline in temp:
     t2 = tuple(ti/255 for ti in t)
     color.append(t2)
 
+    pad.append(split[cst.NUMBER_OF_MOTOR+2:])
+    pad[-1] = [float(x) for x in pad[-1]]
+
     input_total.append(split[0:cst.NUMBER_OF_MOTOR] + [int(split[cst.NUMBER_OF_MOTOR+1])/255])
     input_total[-1] = [float(x) for x in input_total[-1]]
+
 
 f.close()
 
@@ -55,18 +61,18 @@ f.close()
 # pyplot.hold()
 
 
-#print(np.array(input_total))
-# plt.plot(np.array(input_total))
-# plt.legend(["M1", "M2", "M3", "L"])
-# plt.show()
+print(np.array(input_total))
+plt.plot(np.array(pad))
+plt.legend(["P", "A", "D"])
+plt.show()
 
-# exit()
+exit()
 
 robot.plot(        
         np.array(input_list),
         backend='pyplot',
         dt=0.001,
-        movie=fileName+".gif",
+        movie=fileName+".apng",
         block=True,
         color=color
     )

@@ -387,8 +387,10 @@ class YokoboEnv(Env):
 
         emo = self.padToEmotion()
 
-        if cst.EMOTION_PAD_COLOR[emo][1] == self.yokobo.color:
+
+        if cst.EMOTION_PAD_COLOR[emo][1] == self.yokobo.colorFifo.last():
             rewardLight += cst.REWARD_LIGHT_MATCH
+            print("Match:" + emo)
         else:
             rewardLight += cst.REWARD_LIGHT_NOT_MATCH
 
