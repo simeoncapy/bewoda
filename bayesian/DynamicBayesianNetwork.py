@@ -16,15 +16,16 @@ from DbnNode import *
 # valueTime =     list(range(0, 24 + cst.TIME_STEP, cst.TIME_STEP))
 # valueWeather =  ["sunny", "clear night", "cloudy", "rainy", "snowy"]
 
-valueTemp =     list(range(cst.TEMPERATURE_MIN,           cst.TEMPERATURE_MAX + cst.TEMPERATURE_STEP,                     cst.TEMPERATURE_STEP))
+valueTempIn =   list(range(cst.TEMPERATURE_IN_MIN,        cst.TEMPERATURE_IN_MAX + cst.TEMPERATURE_IN_STEP,               cst.TEMPERATURE_IN_STEP))
+valueTempOut =  list(range(cst.TEMPERATURE_OUT_MIN,       cst.TEMPERATURE_OUT_MAX + cst.TEMPERATURE_OUT_STEP,             cst.TEMPERATURE_OUT_STEP))
 valueHumidity = list(range(0,                             100 + cst.HUMIDITY_STEP,                                        cst.HUMIDITY_STEP))
 valueAP =       list(range(cst.ATMOSPHERIC_PRESSURE_MIN,  cst.ATMOSPHERIC_PRESSURE_MAX + cst.ATMOSPHERIC_PRESSURE_STEP,   cst.ATMOSPHERIC_PRESSURE_STEP))
 valueCo2 =      list(range(cst.CO2_LEVEL_MIN,             cst.CO2_LEVEL_MAX + cst.CO2_LEVEL_STEP,                         cst.CO2_LEVEL_STEP))
 valueTime =     list(range(0,                             24 + cst.TIME_STEP,                                             cst.TIME_STEP))
 
 NODES = {
-    cst.DBN_NODE_TEMPERATURE_IN:        (DbnDistribution.NORMAL, gum.IntegerVariable, valueTemp),
-    cst.DBN_NODE_TEMPERATURE_OUT:       (DbnDistribution.NORMAL, gum.IntegerVariable, valueTemp),
+    cst.DBN_NODE_TEMPERATURE_IN:        (DbnDistribution.NORMAL, gum.IntegerVariable, valueTempIn),
+    cst.DBN_NODE_TEMPERATURE_OUT:       (DbnDistribution.NORMAL, gum.IntegerVariable, valueTempOut),
     cst.DBN_NODE_HUMIDITY_IN:           (DbnDistribution.NORMAL, gum.IntegerVariable, valueHumidity),
     cst.DBN_NODE_HUMIDITY_OUT:          (DbnDistribution.NORMAL, gum.IntegerVariable, valueHumidity),
     cst.DBN_NODE_ATMOSPHERIC_PRESSURE:  (DbnDistribution.NORMAL, gum.IntegerVariable, valueAP),
