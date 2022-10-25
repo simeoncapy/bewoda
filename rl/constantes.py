@@ -211,10 +211,24 @@ EMOTION_PAD_COLOR = {
 }
 # np.linalg.norm(a-b)
 
-print(list(EMOTION_PAD_COLOR))
+#print(list(EMOTION_PAD_COLOR))
 
 RANDOM_DATA_EPSILON = 0.3
 RANDOM_MACTH_EMOTION = 0.4
 RANDOM_DISTANCE_X = 20 # px
 RANDOM_DISTANCE_Y = 20 # px
 
+
+# BAYESIAN NETWORK
+DBN_NODE_TEMPERATURE_IN         = "Tin0"
+DBN_NODE_TEMPERATURE_OUT        = "Tout0"
+DBN_NODE_HUMIDITY_IN            = "Hin0"
+DBN_NODE_HUMIDITY_OUT           = "Hout0"
+DBN_NODE_ATMOSPHERIC_PRESSURE   = "AP0"
+DBN_NODE_CO2_LEVEL              = "C0"
+DBN_NODE_TIME                   = "t0"
+DBN_NODE_EMOTION_0              = "E0"
+DBN_NODE_EMOTION_T              = "Et"
+DBN_NODE_P                      = "P0"
+DBN_NODE_A                      = "A0"
+DBN_NODE_D                      = "D0"
