@@ -5,8 +5,12 @@ import pyAgrum as gum
 import scipy.stats as ss
 
 class DbnDistribution(Enum):
-    NORMAL = auto
-    DIRICHLET = auto
+    NORMAL = auto,
+    DIRICHLET = auto,
+    BERNOULLI = auto
+
+def removeNonInt(str):
+    return int(''.join(c for c in str if c.isdigit()))
 
 class DbnNode:
     def __init__(self, name, distribution, gumType, value):
@@ -33,15 +37,25 @@ class DbnNode:
         return node
 
     def distributionParam(self, data):
-        self.distributionParam = data
+        self.distParam = data
 
     def cpt(self):
         cpt = []
         dist = None
         if self.distribution == DbnDistribution.NORMAL:
             dist = ss.norm(self.distParam[0], self.distParam[1])
+        elif self.distribution == DbnDistribution.BERNOULLI:
+            cpt = [1-self.distParam, self.distParam]
+            print(cpt)
+            return cpt
 
+        preVal = None
         for val in self.value:
-            cpt.append(dist.pdf(val))
+            if (preVal == None):
+                cpt.append(dist.cdf(removeNonInt(val)))                
+            else:
+                cpt.append(dist.cdf(removeNonInt(val))-dist.cdf(preVal))
+            preVal = removeNonInt(val)
 
+        print(cpt)
         return cpt

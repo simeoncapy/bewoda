@@ -9,27 +9,27 @@ import constantes as cst
 import MyFifo
 from DbnNode import *
 
-# valueTemp =     ["cold", "warm", "hot"]
-# valueHumidity = ["dry", "normal", "humid"]
-# valueAP =       ["low-pressure", "anticyclone"]
-# valueCo2 =      ["good", "medium", "bad"]
+valueTemp =     ["<=15", "<=25", "<70"]
+valueHumidity = ["<=30", "<=50", "<=100"]
+valueAP =       ["low-pressure", "anticyclone"]
+valueCo2 =      ["<=400", "<=1000", "<=1200"]
 # valueTime =     list(range(0, 24 + cst.TIME_STEP, cst.TIME_STEP))
 # valueWeather =  ["sunny", "clear night", "cloudy", "rainy", "snowy"]
 
-valueTempIn =   list(range(cst.TEMPERATURE_IN_MIN,        cst.TEMPERATURE_IN_MAX + cst.TEMPERATURE_IN_STEP,               cst.TEMPERATURE_IN_STEP))
-valueTempOut =  list(range(cst.TEMPERATURE_OUT_MIN,       cst.TEMPERATURE_OUT_MAX + cst.TEMPERATURE_OUT_STEP,             cst.TEMPERATURE_OUT_STEP))
-valueHumidity = list(range(0,                             100 + cst.HUMIDITY_STEP,                                        cst.HUMIDITY_STEP))
-valueAP =       list(range(cst.ATMOSPHERIC_PRESSURE_MIN,  cst.ATMOSPHERIC_PRESSURE_MAX + cst.ATMOSPHERIC_PRESSURE_STEP,   cst.ATMOSPHERIC_PRESSURE_STEP))
-valueCo2 =      list(range(cst.CO2_LEVEL_MIN,             cst.CO2_LEVEL_MAX + cst.CO2_LEVEL_STEP,                         cst.CO2_LEVEL_STEP))
+#valueTempIn =   list(range(cst.TEMPERATURE_IN_MIN,        cst.TEMPERATURE_IN_MAX + cst.TEMPERATURE_IN_STEP,               cst.TEMPERATURE_IN_STEP))
+#valueTempOut =  list(range(cst.TEMPERATURE_OUT_MIN,       cst.TEMPERATURE_OUT_MAX + cst.TEMPERATURE_OUT_STEP,             cst.TEMPERATURE_OUT_STEP))
+#valueHumidity = list(range(0,                             100 + cst.HUMIDITY_STEP,                                        cst.HUMIDITY_STEP))
+#valueAP =       list(range(cst.ATMOSPHERIC_PRESSURE_MIN,  cst.ATMOSPHERIC_PRESSURE_MAX + cst.ATMOSPHERIC_PRESSURE_STEP,   cst.ATMOSPHERIC_PRESSURE_STEP))
+#valueCo2 =      list(range(cst.CO2_LEVEL_MIN,             cst.CO2_LEVEL_MAX + cst.CO2_LEVEL_STEP,                         cst.CO2_LEVEL_STEP))
 valueTime =     list(range(0,                             24 + cst.TIME_STEP,                                             cst.TIME_STEP))
 
 NODES = {
-    cst.DBN_NODE_TEMPERATURE_IN:        (DbnDistribution.NORMAL, gum.IntegerVariable, valueTempIn),
-    cst.DBN_NODE_TEMPERATURE_OUT:       (DbnDistribution.NORMAL, gum.IntegerVariable, valueTempOut),
-    cst.DBN_NODE_HUMIDITY_IN:           (DbnDistribution.NORMAL, gum.IntegerVariable, valueHumidity),
-    cst.DBN_NODE_HUMIDITY_OUT:          (DbnDistribution.NORMAL, gum.IntegerVariable, valueHumidity),
-    cst.DBN_NODE_ATMOSPHERIC_PRESSURE:  (DbnDistribution.NORMAL, gum.IntegerVariable, valueAP),
-    cst.DBN_NODE_CO2_LEVEL:             (DbnDistribution.NORMAL, gum.IntegerVariable, valueCo2),
+    cst.DBN_NODE_TEMPERATURE_IN:        (DbnDistribution.NORMAL, gum.LabelizedVariable, valueTemp),
+    cst.DBN_NODE_TEMPERATURE_OUT:       (DbnDistribution.NORMAL, gum.LabelizedVariable, valueTemp),
+    cst.DBN_NODE_HUMIDITY_IN:           (DbnDistribution.NORMAL, gum.LabelizedVariable, valueHumidity),
+    cst.DBN_NODE_HUMIDITY_OUT:          (DbnDistribution.NORMAL, gum.LabelizedVariable, valueHumidity),
+    cst.DBN_NODE_ATMOSPHERIC_PRESSURE:  (DbnDistribution.BERNOULLI, gum.LabelizedVariable, valueAP),
+    cst.DBN_NODE_CO2_LEVEL:             (DbnDistribution.NORMAL, gum.LabelizedVariable, valueCo2),
     cst.DBN_NODE_TIME:                  (DbnDistribution.NORMAL, gum.IntegerVariable, valueTime),
     cst.DBN_NODE_EMOTION_0:             (DbnDistribution.NORMAL, gum.LabelizedVariable, cst.EMOTION),
     cst.DBN_NODE_EMOTION_T:             (DbnDistribution.NORMAL, gum.LabelizedVariable, cst.EMOTION),
@@ -79,23 +79,34 @@ class DynamicBayesianNetwork:
         print(self.dbn.nodes())
 
         self.dbn.addArc(cst.DBN_NODE_TEMPERATURE_IN,        cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)
         self.dbn.addArc(cst.DBN_NODE_TEMPERATURE_OUT,       cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)
         self.dbn.addArc(cst.DBN_NODE_HUMIDITY_IN,           cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)
         self.dbn.addArc(cst.DBN_NODE_HUMIDITY_OUT,          cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)
         self.dbn.addArc(cst.DBN_NODE_ATMOSPHERIC_PRESSURE,  cst.DBN_NODE_EMOTION_T)
-        self.dbn.addArc(cst.DBN_NODE_CO2_LEVEL,             cst.DBN_NODE_EMOTION_T)        
+        print(self.dbn)
+        self.dbn.addArc(cst.DBN_NODE_CO2_LEVEL,             cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)        
         self.dbn.addArc(cst.DBN_NODE_TIME,                  cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)
         self.dbn.addArc(cst.DBN_NODE_P,                     cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)
         self.dbn.addArc(cst.DBN_NODE_A,                     cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)
         self.dbn.addArc(cst.DBN_NODE_D,                     cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)
         self.dbn.addArc(cst.DBN_NODE_EMOTION_0,             cst.DBN_NODE_EMOTION_T)
+        print(self.dbn)
 
         # init the node distribution
         self.nodes[cst.DBN_NODE_TEMPERATURE_IN].distributionParam((20, 5))
         self.nodes[cst.DBN_NODE_TEMPERATURE_OUT].distributionParam((15, 5))
         self.nodes[cst.DBN_NODE_HUMIDITY_IN].distributionParam((25, 5))
         self.nodes[cst.DBN_NODE_HUMIDITY_OUT].distributionParam((25, 5))
-        self.nodes[cst.DBN_NODE_ATMOSPHERIC_PRESSURE].distributionParam((1015, 25))
+        self.nodes[cst.DBN_NODE_ATMOSPHERIC_PRESSURE].distributionParam((0.5))
         self.nodes[cst.DBN_NODE_CO2_LEVEL].distributionParam((400, 100))
 
 
