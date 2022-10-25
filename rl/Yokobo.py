@@ -24,6 +24,7 @@ class Yokobo():
         self.eeJerk = []
         self.eeEnergy = []
 
+        self.firstCallPad = True
         
         self.OFF_LIGHT = list(cst.PALETTE)[0]
          
@@ -230,6 +231,8 @@ class Yokobo():
         self.colorFifo.add(self.OFF_LIGHT)
         self.luminosityFifo.reset()
         self.luminosityFifo.add(128)
+
+        self.firstCallPad = True
         
 
     def move(self, positions):
@@ -260,9 +263,10 @@ class Yokobo():
 
         #print("acce: " + str(self.magnitudeEndEffectorAcceleration(True)))
         if jerk != False:
-            if jerk > cst.JERK_MAX: # Since we cannot compute the maximum jerk
-                cst.JERK_MAX = jerk            
-            pleasure = -1 * (((PAD_MAX-PAD_MIN)*jerk/cst.JERK_MAX) + PAD_MIN)
+            if jerk > cst.JERK_MAX and not self.firstCallPad: 
+                # Since we cannot compute the maximum jerk, and avoid the first point that has high jerk
+                cst.JERK_MAX = jerk     
+            pleasure = -1 * (((PAD_MAX-PAD_MIN)*jerk/cst.JERK_MAX) + PAD_MIN)            
 
         if energy != False:
             arousal = ((PAD_MAX-PAD_MIN)*energy/cst.ENERGY_MAX) + PAD_MIN
@@ -279,6 +283,7 @@ class Yokobo():
         if dominance    > PAD_MAX:   dominance = PAD_MAX
         if dominance    < PAD_MIN:   dominance = PAD_MIN
 
+        self.firstCallPad = False
         return [pleasure, arousal, dominance]
 
     def light(self, color, luminosity):

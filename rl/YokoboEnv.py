@@ -62,6 +62,8 @@ class YokoboEnv(Env):
 
         self.oldPad = [0, 0, 0]
 
+        self.colorMatch = 0
+
         # self.motors = []
         # for i in range(cst.NUMBER_OF_MOTOR):
         #     self.motors.append(Motor())
@@ -122,6 +124,8 @@ class YokoboEnv(Env):
         self.timer = time.perf_counter()
 
         self.oldPad = self.PAD
+
+        self.colorMatch = 0
         
         # return the observation
         #return self.canvas
@@ -370,17 +374,17 @@ class YokoboEnv(Env):
         #if colorChange: # to avoid the colour to change too often
         #    rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE
 
-        print(self.yokobo.colorFifo)
-        print("close color: " + str(closeColor))
+        #print(self.yokobo.colorFifo)
+        #print("close color: " + str(closeColor))
 
         if closeColor:
             rewardLight += cst.REWARD_LIGHT_CLOSE_COLOR
         if self.yokobo.colorFifo.alwaysChange():
             rewardLight += cst.REWARD_LIGHT_COLOR_CHANGE
-            print("Color change")
+            #print("Color change")
         elif self.yokobo.colorFifo.same():
             rewardLight += cst.REWARD_LIGHT_SAME
-            print("Color same")
+            #print("Color same")
 
         if self.yokobo.luminosityFifo.same():
             rewardLight += cst.REWARD_LIGHT_SAME
@@ -390,7 +394,8 @@ class YokoboEnv(Env):
 
         if cst.EMOTION_PAD_COLOR[emo][1] == self.yokobo.colorFifo.last():
             rewardLight += cst.REWARD_LIGHT_MATCH
-            print("Match:" + emo)
+            #print("Match:" + emo)
+            self.colorMatch += 1
         else:
             rewardLight += cst.REWARD_LIGHT_NOT_MATCH
 

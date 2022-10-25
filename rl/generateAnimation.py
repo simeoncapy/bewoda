@@ -19,7 +19,7 @@ print(robot)
 # pyplot.hold()
 # exit()
 
-fileName = "archive/motors-2022-10-21_15-48-39-815749(301_pts)_499"
+fileName = "archive/motors-2022-10-25_03-45-22-802181(301_pts)_0"
 f = open(fileName + ".traj", 'r')
 temp = f.read().splitlines()
 while temp[0][0] == "<":
@@ -60,13 +60,23 @@ f.close()
 # plt.show()
 # pyplot.hold()
 
+graph = "pad"
+if graph == "m":
+    data = input_list
+    legend = ["M1", "M2", "M3"]
+elif graph == "pad":
+    data = pad
+    legend = ["P", "A", "D"]
 
-print(np.array(input_total))
-plt.plot(np.array(pad))
-plt.legend(["P", "A", "D"])
+#print(np.array(input_total))
+plt.plot(np.array(data))
+plt.legend(legend)
+plt.savefig(fileName + "_" + "-".join(legend) + ".png")
 plt.show()
 
-exit()
+
+
+#exit()
 
 robot.plot(        
         np.array(input_list),
@@ -74,7 +84,8 @@ robot.plot(
         dt=0.001,
         movie=fileName+".apng",
         block=True,
-        color=color
+        color=color,
+        printEach=True
     )
 
 #pyplot.hold()

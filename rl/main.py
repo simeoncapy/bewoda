@@ -68,7 +68,8 @@ if __name__ == '__main__':
         avgScore = np.mean(scores[-100:])
         print("episode ", i, 'score %.2f' % score,
                 'average score %.2f' % avgScore,
-                "epsilon %.2f" % agent.epsilon)
+                "epsilon %.2f" % agent.epsilon,
+                "colorMatch %.2f" % env.colorMatch)
 
         info = "episode {:,} - score {:.2f} - average score {:.2f} - epsilon {:.2f} - gamma {:.2f} - LR {:.4f} - FAKE DATA ".format(i, score, avgScore, agent.epsilon, agent.gamma, agent.lr, str(cst.FAKE_DATA)) 
         env.saveTrajectory(i, thres=70, info=info)

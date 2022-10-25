@@ -184,8 +184,8 @@ MASS = (50 / 1000) # kg
 LIGHT_SAMPLING_SIZE = 5
 
 VELOCITY_MAX = np.sqrt(2*np.power(MOTOR_2_ECCENTRIC, 2) + np.power(YOKOBO_BOWL_HEIGH, 2)) * MOTOR_MAX_SPEED
-ENERGY_MAX = (MASS / 2) * np.power(VELOCITY_MAX, 2)
-JERK_MAX = 0 # m/s^3
+ENERGY_MAX = 0.17 #(MASS / 2) * np.power(VELOCITY_MAX, 2)
+JERK_MAX = 0.1 # m/s^3
 VELOCITY_LOW = 0.001 # m/s
 
 # neutral, "surprise",
