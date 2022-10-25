@@ -7,18 +7,41 @@ import sys
 sys.path.insert(1, '../rl')
 import constantes as cst
 import MyFifo
+from DbnNode import *
 
-valueTemp =     ["cold", "warm", "hot"]
-valueHumidity = ["dry", "normal", "humid"]
-valueAP =       ["low-pressure", "anticyclone"]
-valueCo2 =      ["good", "medium", "bad"]
-valueTime =     list(range(0, 24 + cst.TIME_STEP, cst.TIME_STEP))
-valueWeather =  ["sunny", "clear night", "cloudy", "rainy", "snowy"]
+# valueTemp =     ["cold", "warm", "hot"]
+# valueHumidity = ["dry", "normal", "humid"]
+# valueAP =       ["low-pressure", "anticyclone"]
+# valueCo2 =      ["good", "medium", "bad"]
+# valueTime =     list(range(0, 24 + cst.TIME_STEP, cst.TIME_STEP))
+# valueWeather =  ["sunny", "clear night", "cloudy", "rainy", "snowy"]
+
+valueTemp =     list(range(cst.TEMPERATURE_MIN,           cst.TEMPERATURE_MAX + cst.TEMPERATURE_STEP,                     cst.TEMPERATURE_STEP))
+valueHumidity = list(range(0,                             100 + cst.HUMIDITY_STEP,                                        cst.HUMIDITY_STEP))
+valueAP =       list(range(cst.ATMOSPHERIC_PRESSURE_MIN,  cst.ATMOSPHERIC_PRESSURE_MAX + cst.ATMOSPHERIC_PRESSURE_STEP,   cst.ATMOSPHERIC_PRESSURE_STEP))
+valueCo2 =      list(range(cst.CO2_LEVEL_MIN,             cst.CO2_LEVEL_MAX + cst.CO2_LEVEL_STEP,                         cst.CO2_LEVEL_STEP))
+valueTime =     list(range(0,                             24 + cst.TIME_STEP,                                             cst.TIME_STEP))
+
+NODES = {
+    cst.DBN_NODE_TEMPERATURE_IN:        (DbnDistribution.NORMAL, gum.IntegerVariable, valueTemp),
+    cst.DBN_NODE_TEMPERATURE_OUT:       (DbnDistribution.NORMAL, gum.IntegerVariable, valueTemp),
+    cst.DBN_NODE_HUMIDITY_IN:           (DbnDistribution.NORMAL, gum.IntegerVariable, valueHumidity),
+    cst.DBN_NODE_HUMIDITY_OUT:          (DbnDistribution.NORMAL, gum.IntegerVariable, valueHumidity),
+    cst.DBN_NODE_ATMOSPHERIC_PRESSURE:  (DbnDistribution.NORMAL, gum.IntegerVariable, valueAP),
+    cst.DBN_NODE_CO2_LEVEL:             (DbnDistribution.NORMAL, gum.IntegerVariable, valueCo2),
+    cst.DBN_NODE_TIME:                  (DbnDistribution.NORMAL, gum.IntegerVariable, valueTime),
+    cst.DBN_NODE_EMOTION_0:             (DbnDistribution.NORMAL, gum.LabelizedVariable, cst.EMOTION),
+    cst.DBN_NODE_EMOTION_T:             (DbnDistribution.NORMAL, gum.LabelizedVariable, cst.EMOTION),
+    cst.DBN_NODE_P:                     (DbnDistribution.NORMAL, gum.RangeVariable, list(range(-10, 11))),
+    cst.DBN_NODE_A:                     (DbnDistribution.NORMAL, gum.RangeVariable, list(range(-10, 11))),
+    cst.DBN_NODE_D:                     (DbnDistribution.NORMAL, gum.RangeVariable, list(range(-10, 11)))
+}
 
 class DynamicBayesianNetwork:
     def __init__(self, name, previousSampling=None, load=False):
         self.dbn = gum.BayesNet(name)
-        
+      
+        self.nodes = {}
         if load == False:
             self.create()
         else:
@@ -33,43 +56,67 @@ class DynamicBayesianNetwork:
         self.dbn=gum.loadBN(file)
 
     def create(self):
-        tin0 = self.dbn.add(gum.LabelizedVariable("Tin0", "Tin0", valueTemp))
-        #tout0 = self.dbn.add(gum.LabelizedVariable("Tout0","Tout0", valueTemp))
-        hin0 = self.dbn.add(gum.LabelizedVariable("Hin0","Hin0", valueHumidity))
-        #hout0 = self.dbn.add(gum.LabelizedVariable("Hout0","Hout0", valueHumidity))
-        #ap0 = self.dbn.add(gum.LabelizedVariable("AP0","AP0", valueAP))
-        w0 = self.dbn.add(gum.LabelizedVariable("W0","W0", valueWeather))
-        c0 = self.dbn.add(gum.LabelizedVariable("C0","C0", valueCo2))
-        t0 = self.dbn.add(gum.IntegerVariable("t0","t0", valueTime))
-        e0 = self.dbn.add(gum.LabelizedVariable("E0","E0", cst.EMOTION))
-        et = self.dbn.add(gum.LabelizedVariable("Et","Et", cst.EMOTION))
-        p0 = self.dbn.add(gum.RangeVariable("P0","P0", -10, 10))
-        a0 = self.dbn.add(gum.RangeVariable("A0","A0", -10, 10))
-        d0 = self.dbn.add(gum.RangeVariable("D0","D0", -10, 10))
+        for node, param in NODES.items():
+            temp = DbnNode(node, param[0], param[1], param[2])
+            self.nodes[node] = temp
+            self.dbn.add(temp.gumNode())
 
-        self.dbn.addArc(tin0, et)
-        #self.dbn.addArc(tout0, et)
-        self.dbn.addArc(hin0, et)
-        #self.dbn.addArc(hout0, et)
-        #self.dbn.addArc(ap0, et)
-        self.dbn.addArc(w0, et)
-        self.dbn.addArc(c0, et)
-        self.dbn.addArc(e0, et)
-        self.dbn.addArc(t0, et)
-        self.dbn.addArc(p0, et)
-        self.dbn.addArc(a0, et)
-        self.dbn.addArc(d0, et)
+        # tin0 =  self.dbn.add(gum.IntegerVariable(cst.DBN_NODE_TEMPERATURE_IN,       cst.DBN_NODE_TEMPERATURE_IN,        value[cst.DBN_NODE_TEMPERATURE_IN]))
+        # tout0 = self.dbn.add(gum.IntegerVariable(cst.DBN_NODE_TEMPERATURE_OUT,      cst.DBN_NODE_TEMPERATURE_OUT,       value[cst.DBN_NODE_TEMPERATURE_OUT]))
+        # hin0 =  self.dbn.add(gum.IntegerVariable(cst.DBN_NODE_HUMIDITY_IN,          cst.DBN_NODE_HUMIDITY_IN,           value[cst.DBN_NODE_HUMIDITY_IN]))
+        # hout0 = self.dbn.add(gum.IntegerVariable(cst.DBN_NODE_HUMIDITY_OUT,         cst.DBN_NODE_HUMIDITY_OUT,          value[cst.DBN_NODE_HUMIDITY_OUT]))
+        # ap0 =   self.dbn.add(gum.IntegerVariable(cst.DBN_NODE_ATMOSPHERIC_PRESSURE, cst.DBN_NODE_ATMOSPHERIC_PRESSURE,  value[cst.DBN_NODE_ATMOSPHERIC_PRESSURE]))
+        # #w0 = self.dbn.add(gum.IntegerVariable("W0","W0", valueWeather))
+        # c0 =    self.dbn.add(gum.IntegerVariable(cst.DBN_NODE_CO2_LEVEL,            cst.DBN_NODE_CO2_LEVEL,             value[cst.DBN_NODE_CO2_LEVEL]))
+        # t0 =    self.dbn.add(gum.IntegerVariable(cst.DBN_NODE_TIME,                 cst.DBN_NODE_TIME,                  value[cst.DBN_NODE_TIME]))
+        # e0 =    self.dbn.add(gum.LabelizedVariable(cst.DBN_NODE_EMOTION_0,          cst.DBN_NODE_EMOTION_0,             value[cst.DBN_NODE_EMOTION_0]))
+        # et =    self.dbn.add(gum.LabelizedVariable(cst.DBN_NODE_EMOTION_T,          cst.DBN_NODE_EMOTION_T,             value[cst.DBN_NODE_EMOTION_T]))
+        # p0 =    self.dbn.add(gum.RangeVariable(cst.DBN_NODE_P,                      cst.DBN_NODE_P,                     -10, 10))
+        # a0 =    self.dbn.add(gum.RangeVariable(cst.DBN_NODE_A,                      cst.DBN_NODE_A,                     -10, 10))
+        # d0 =    self.dbn.add(gum.RangeVariable(cst.DBN_NODE_D,                      cst.DBN_NODE_D,                     -10, 10))
 
-        self.dbn.generateCPTs()
+        print(self.dbn.nodes())
+
+        self.dbn.addArc(cst.DBN_NODE_TEMPERATURE_IN,        cst.DBN_NODE_EMOTION_T)
+        self.dbn.addArc(cst.DBN_NODE_TEMPERATURE_OUT,       cst.DBN_NODE_EMOTION_T)
+        self.dbn.addArc(cst.DBN_NODE_HUMIDITY_IN,           cst.DBN_NODE_EMOTION_T)
+        self.dbn.addArc(cst.DBN_NODE_HUMIDITY_OUT,          cst.DBN_NODE_EMOTION_T)
+        self.dbn.addArc(cst.DBN_NODE_ATMOSPHERIC_PRESSURE,  cst.DBN_NODE_EMOTION_T)
+        self.dbn.addArc(cst.DBN_NODE_CO2_LEVEL,             cst.DBN_NODE_EMOTION_T)        
+        self.dbn.addArc(cst.DBN_NODE_TIME,                  cst.DBN_NODE_EMOTION_T)
+        self.dbn.addArc(cst.DBN_NODE_P,                     cst.DBN_NODE_EMOTION_T)
+        self.dbn.addArc(cst.DBN_NODE_A,                     cst.DBN_NODE_EMOTION_T)
+        self.dbn.addArc(cst.DBN_NODE_D,                     cst.DBN_NODE_EMOTION_T)
+        self.dbn.addArc(cst.DBN_NODE_EMOTION_0,             cst.DBN_NODE_EMOTION_T)
+
+        # init the node distribution
+        self.nodes[cst.DBN_NODE_TEMPERATURE_IN].distributionParam((20, 5))
+        self.nodes[cst.DBN_NODE_TEMPERATURE_OUT].distributionParam((15, 5))
+        self.nodes[cst.DBN_NODE_HUMIDITY_IN].distributionParam((25, 5))
+        self.nodes[cst.DBN_NODE_HUMIDITY_OUT].distributionParam((25, 5))
+        self.nodes[cst.DBN_NODE_ATMOSPHERIC_PRESSURE].distributionParam((1015, 25))
+        self.nodes[cst.DBN_NODE_CO2_LEVEL].distributionParam((400, 100))
+
+
+        self._generateCPT()
+
+        # self.dbn.generateCPTs()
+
+    def _generateCPT(self):
+        for name, node in self.nodes.items():
+            if name[-1] == "t": # skip the nodes of the second slice
+                continue
+            self.dbn.cpt(name).fillWith(node.cpt())
+        
 
     def _particleFiltering(self, evidence):
         pass
 
-    def infer(self, evidence, nodeToCheck="Et"):
+    def infer(self, evidence, nodeToCheck=cst.DBN_NODE_EMOTION_T):
         self._particleFiltering(evidence)
 
         ie=gum.LazyPropagation(self.dbn)
-        return ie.posterior("Et")
+        return ie.posterior(nodeToCheck)
 
     def weighted_sampler(self, seq, weights):
         """Return a random-sample function that picks from seq weighted by weights."""
@@ -85,3 +132,6 @@ class DynamicBayesianNetwork:
         sample = self.weighted_sampler(seq, weights)
         return [sample() for _ in range(n)]
         
+if __name__ == "__main__":
+    dbn = DynamicBayesianNetwork("name")
+    print(dbn.dbn.cpt(cst.DBN_NODE_TEMPERATURE_IN))

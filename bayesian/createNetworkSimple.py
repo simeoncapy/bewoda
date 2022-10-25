@@ -43,7 +43,10 @@ dbn.addArc(p0, et)
 dbn.addArc(a0, et)
 dbn.addArc(d0, et)
 
-print(dbn.cpt("Et"))
+dbn.cpt("t0").fillWith([1, 2, 3, 4, 5])
+print(dbn.cpt("E0"))
+
+exit()
 
 print("before setting CPT")
 dbn.generateCPTs()
