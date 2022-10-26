@@ -389,7 +389,8 @@ class YokoboEnv(Env):
         if self.yokobo.luminosityFifo.same():
             rewardLight += cst.REWARD_LIGHT_SAME
 
-        emo = self.padToEmotion()
+        #emo = self.padToEmotion()
+        emo = cst.padToEmotion(self.PAD)
 
 
         if cst.EMOTION_PAD_COLOR[emo][1] == self.yokobo.colorFifo.last():
@@ -406,15 +407,15 @@ class YokoboEnv(Env):
         self.agentLight.learn()
         self.oldPad = self.PAD
 
-    def padToEmotion(self):
-        norm = float('inf')
-        for emotion, padEmo in cst.EMOTION_PAD_COLOR.items():
-            newNorm = np.linalg.norm(padEmo[0]-self.PAD)
-            if newNorm < norm:
-                norm = newNorm
-                emo = emotion
+    # def padToEmotion(self):
+    #     norm = float('inf')
+    #     for emotion, padEmo in cst.EMOTION_PAD_COLOR.items():
+    #         newNorm = np.linalg.norm(padEmo[0]-self.PAD)
+    #         if newNorm < norm:
+    #             norm = newNorm
+    #             emo = emotion
 
-        return emo
+    #     return emo
 
 
 

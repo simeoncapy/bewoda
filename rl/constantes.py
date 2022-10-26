@@ -1,3 +1,4 @@
+from socket import PF_CAN
 from tkinter import SEPARATOR
 from MyColor import *
 import math
@@ -215,6 +216,16 @@ EMOTION_PAD_COLOR = {
 }
 # np.linalg.norm(a-b)
 
+def padToEmotion(pad):
+    norm = float('inf')
+    for emotion, padEmo in EMOTION_PAD_COLOR.items():
+        newNorm = np.linalg.norm(padEmo[0]-pad)
+        if newNorm < norm:
+            norm = newNorm
+            emo = emotion
+
+    return emo
+
 #print(list(EMOTION_PAD_COLOR))
 
 RANDOM_DATA_EPSILON = 0.3
@@ -237,3 +248,6 @@ DBN_NODE_EMOTION_T              = "Et"
 DBN_NODE_P                      = "P0"
 DBN_NODE_A                      = "A0"
 DBN_NODE_D                      = "D0"
+DBN_NODE_ROBOT                  = "R0"
+
+PF_N                            = 1000

@@ -1,5 +1,6 @@
 import bisect
 import random
+from socket import PF_CAN
 import pyAgrum as gum
 #import pyAgrum.lib.notebook as gnb
 import pyAgrum.lib.dynamicBN as gdyn
@@ -8,11 +9,13 @@ sys.path.insert(1, '../rl')
 import constantes as cst
 import MyFifo
 from DbnNode import *
+import numpy as np
 
 valueTemp =     ["<=15", "<=25", "<70"]
 valueHumidity = ["<=30", "<=50", "<=100"]
-valueAP =       ["low-pressure", "anticyclone"]
+valueAP =       ["<=1015", ">1015"]
 valueCo2 =      ["<=400", "<=1000", "<=1200"]
+valueTime =     ["0-6h", "6-12h", "12-18h", "18-24h"]
 # valueTime =     list(range(0, 24 + cst.TIME_STEP, cst.TIME_STEP))
 # valueWeather =  ["sunny", "clear night", "cloudy", "rainy", "snowy"]
 
@@ -21,7 +24,7 @@ valueCo2 =      ["<=400", "<=1000", "<=1200"]
 #valueHumidity = list(range(0,                             100 + cst.HUMIDITY_STEP,                                        cst.HUMIDITY_STEP))
 #valueAP =       list(range(cst.ATMOSPHERIC_PRESSURE_MIN,  cst.ATMOSPHERIC_PRESSURE_MAX + cst.ATMOSPHERIC_PRESSURE_STEP,   cst.ATMOSPHERIC_PRESSURE_STEP))
 #valueCo2 =      list(range(cst.CO2_LEVEL_MIN,             cst.CO2_LEVEL_MAX + cst.CO2_LEVEL_STEP,                         cst.CO2_LEVEL_STEP))
-valueTime =     list(range(0,                             24 + cst.TIME_STEP,                                             cst.TIME_STEP))
+#valueTime =     list(range(0,                             24 + cst.TIME_STEP,                                             cst.TIME_STEP))
 
 NODES = {
     cst.DBN_NODE_TEMPERATURE_IN:        (DbnDistribution.NORMAL, gum.LabelizedVariable, valueTemp),
@@ -30,17 +33,19 @@ NODES = {
     cst.DBN_NODE_HUMIDITY_OUT:          (DbnDistribution.NORMAL, gum.LabelizedVariable, valueHumidity),
     cst.DBN_NODE_ATMOSPHERIC_PRESSURE:  (DbnDistribution.BERNOULLI, gum.LabelizedVariable, valueAP),
     cst.DBN_NODE_CO2_LEVEL:             (DbnDistribution.NORMAL, gum.LabelizedVariable, valueCo2),
-    cst.DBN_NODE_TIME:                  (DbnDistribution.NORMAL, gum.IntegerVariable, valueTime),
-    cst.DBN_NODE_EMOTION_0:             (DbnDistribution.NORMAL, gum.LabelizedVariable, cst.EMOTION),
-    cst.DBN_NODE_EMOTION_T:             (DbnDistribution.NORMAL, gum.LabelizedVariable, cst.EMOTION),
-    cst.DBN_NODE_P:                     (DbnDistribution.NORMAL, gum.RangeVariable, list(range(-10, 11))),
-    cst.DBN_NODE_A:                     (DbnDistribution.NORMAL, gum.RangeVariable, list(range(-10, 11))),
-    cst.DBN_NODE_D:                     (DbnDistribution.NORMAL, gum.RangeVariable, list(range(-10, 11)))
+    cst.DBN_NODE_TIME:                  (DbnDistribution.CLASS, gum.LabelizedVariable, valueTime),
+    cst.DBN_NODE_EMOTION_0:             (DbnDistribution.CLASS, gum.LabelizedVariable, cst.EMOTION),
+    cst.DBN_NODE_EMOTION_T:             (DbnDistribution.CLASS, gum.LabelizedVariable, cst.EMOTION),
+    # cst.DBN_NODE_P:                     (DbnDistribution.NORMAL, gum.RangeVariable, list(range(-10, 11))),
+    # cst.DBN_NODE_A:                     (DbnDistribution.NORMAL, gum.RangeVariable, list(range(-10, 11))),
+    # cst.DBN_NODE_D:                     (DbnDistribution.NORMAL, gum.RangeVariable, list(range(-10, 11))),
+    cst.DBN_NODE_ROBOT:                 (DbnDistribution.CLASS, gum.LabelizedVariable, list(cst.EMOTION_PAD_COLOR.keys()))
 }
 
 class DynamicBayesianNetwork:
-    def __init__(self, name, previousSampling=None, load=False):
+    def __init__(self, name, N=cst.PF_N, previousSampling=None, load=False):
         self.dbn = gum.BayesNet(name)
+        self.N = N
       
         self.nodes = {}
         if load == False:
@@ -92,11 +97,13 @@ class DynamicBayesianNetwork:
         print(self.dbn)        
         self.dbn.addArc(cst.DBN_NODE_TIME,                  cst.DBN_NODE_EMOTION_T)
         print(self.dbn)
-        self.dbn.addArc(cst.DBN_NODE_P,                     cst.DBN_NODE_EMOTION_T)
-        print(self.dbn)
-        self.dbn.addArc(cst.DBN_NODE_A,                     cst.DBN_NODE_EMOTION_T)
-        print(self.dbn)
-        self.dbn.addArc(cst.DBN_NODE_D,                     cst.DBN_NODE_EMOTION_T)
+        # self.dbn.addArc(cst.DBN_NODE_P,                     cst.DBN_NODE_EMOTION_T)
+        # print(self.dbn)
+        # self.dbn.addArc(cst.DBN_NODE_A,                     cst.DBN_NODE_EMOTION_T)
+        # print(self.dbn)
+        # self.dbn.addArc(cst.DBN_NODE_D,                     cst.DBN_NODE_EMOTION_T)
+        # print(self.dbn)
+        self.dbn.addArc(cst.DBN_NODE_ROBOT,                 cst.DBN_NODE_EMOTION_T)
         print(self.dbn)
         self.dbn.addArc(cst.DBN_NODE_EMOTION_0,             cst.DBN_NODE_EMOTION_T)
         print(self.dbn)
@@ -108,21 +115,58 @@ class DynamicBayesianNetwork:
         self.nodes[cst.DBN_NODE_HUMIDITY_OUT].distributionParam((25, 5))
         self.nodes[cst.DBN_NODE_ATMOSPHERIC_PRESSURE].distributionParam((0.5))
         self.nodes[cst.DBN_NODE_CO2_LEVEL].distributionParam((400, 100))
+        self.nodes[cst.DBN_NODE_EMOTION_0].distributionParam(None)
+        self.nodes[cst.DBN_NODE_EMOTION_T].distributionParam(None)
+        self.nodes[cst.DBN_NODE_TIME].distributionParam(None)
+        # self.nodes[cst.DBN_NODE_P].distributionParam((0, 5))
+        # self.nodes[cst.DBN_NODE_A].distributionParam((0, 5))
+        # self.nodes[cst.DBN_NODE_D].distributionParam((0, 5))
+        self.nodes[cst.DBN_NODE_ROBOT].distributionParam(None)
 
-
-        self._generateCPT()
+        self._generateCptPrior()
+        self._generateCptPosterior(True)
 
         # self.dbn.generateCPTs()
 
-    def _generateCPT(self):
+    def _generateCptPrior(self):
         for name, node in self.nodes.items():
             if name[-1] == "t": # skip the nodes of the second slice
                 continue
             self.dbn.cpt(name).fillWith(node.cpt())
+
+    def _generateCptPosterior(self, init=True, prior=None):
+        if init: # for the initialisation, fill all data with same value
+            self.dbn.cpt(cst.DBN_NODE_EMOTION_T)[:] = self.nodes[cst.DBN_NODE_EMOTION_T].cpt()[0]
+        else:
+           self.dbn.cpt(cst.DBN_NODE_EMOTION_T)[prior] = self.nodes[cst.DBN_NODE_EMOTION_T].cpt()
+            #[self.nodes[cst.DBN_NODE_EMOTION_T].cpt()] * np.prod([len(s) for s in self.nodes])
+
+        # bn.cpt("w")[{'r': 0, 's': 0}] = [1, 0]
         
 
-    def _particleFiltering(self, evidence):
-        pass
+    def _particleFiltering(self, node, evidence):
+        dist = self.dbn.cpt(node)[evidence]
+        # Weight Initialization
+        w = [0 for _ in range(self.N)]
+        s = [node.random() for _ in range(self.N)]
+        w_tot = 0
+
+        for i in range(self.N):
+            w_i = self.infer(evidence)[s[i]] * dist[s[i]]
+            w[i] = w_i
+            w_tot += w_i
+
+        # Normalize all the weights
+        for i in range(self.N):
+            w[i] = w[i] / w_tot
+
+        # Limit weights to 4 digits
+        for i in range(self.N):
+            w[i] = float("{0:.4f}".format(w[i]))
+
+        # STEP 2
+        s = weighted_sample_with_replacement(N, s, w)
+
 
     def infer(self, evidence, nodeToCheck=cst.DBN_NODE_EMOTION_T):
         self._particleFiltering(evidence)
@@ -147,3 +191,4 @@ class DynamicBayesianNetwork:
 if __name__ == "__main__":
     dbn = DynamicBayesianNetwork("name")
     print(dbn.dbn.cpt(cst.DBN_NODE_TEMPERATURE_IN))
+    print(dbn.dbn.cpt(cst.DBN_NODE_EMOTION_T))
