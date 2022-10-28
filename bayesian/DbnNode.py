@@ -5,6 +5,7 @@ import warnings
 import pyAgrum as gum
 import scipy.stats as ss
 import sys
+from ClassDataStorage import *
 sys.path.insert(1, '../rl')
 import constantes as cst
 import MyFifo
@@ -34,7 +35,10 @@ class DbnNode:
         self.gumType = gumType
         self.CPT = []
         self.N = N
-        self.data = MyFifo(self.N)
+        if self.distribution == DbnDistribution.CLASS:
+            self.data = ClassDataStorage(self.value, WeightFonction.EXP, cst.DBN_WEIGHT_FCT_PARAM_EXP_ALPHA)
+        else:
+            self.data = MyFifo(self.N)
 
     def __len__(self):
         return len(self.value)

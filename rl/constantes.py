@@ -251,3 +251,5 @@ DBN_NODE_D                      = "D0"
 DBN_NODE_ROBOT                  = "R0"
 
 PF_N                            = 1000
+
+DBN_WEIGHT_FCT_PARAM_EXP_ALPHA  = 2
