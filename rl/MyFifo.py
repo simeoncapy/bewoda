@@ -14,6 +14,9 @@ class MyFifo:
 
         return text[:-2] + "]" # remove the last tab and semi-colon
 
+    def __len__(self):
+        return self.size
+
     def add(self, data):
         self.fifo.append(data)
         self.size += 1
@@ -21,7 +24,7 @@ class MyFifo:
             self.fifo.pop(0)
             self.size -= 1
 
-    def append(self, data):
+    def append(self, data): # alias
         self.add(data)
 
     def empty(self):

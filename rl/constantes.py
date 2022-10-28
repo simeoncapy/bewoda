@@ -1,4 +1,3 @@
-from socket import PF_CAN
 from tkinter import SEPARATOR
 from MyColor import *
 import math
@@ -249,7 +248,9 @@ DBN_NODE_P                      = "P0"
 DBN_NODE_A                      = "A0"
 DBN_NODE_D                      = "D0"
 DBN_NODE_ROBOT                  = "R0"
+DBN_NODE_SENSOR                 = "St"
 
 PF_N                            = 1000
 
 DBN_WEIGHT_FCT_PARAM_EXP_ALPHA  = 2
+DBN_WEIGHT_FCT_PARAM_TAN        = [7, -10000, 0.2]

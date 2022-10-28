@@ -6,22 +6,13 @@ import pyAgrum as gum
 import scipy.stats as ss
 import sys
 from ClassDataStorage import *
+from AbstractDbnNode import *
 sys.path.insert(1, '../rl')
 import constantes as cst
-import MyFifo
+from MyFifo import *
 
-class DbnDistribution(Enum):
-    NORMAL = auto()
-    CLASS = auto()
-    BERNOULLI = auto()
 
-def removeNonInt(str):
-    if isinstance(str, int):
-        return str
-    else:
-        return int(''.join(c for c in str if c.isdigit()))
-
-class DbnNode:
+class PriorDbnNode(AbstractDbnNode):
     def __init__(self, name, distribution, gumType, value, N=cst.PF_N):
         self.name = name
         if isinstance(distribution , DbnDistribution):
@@ -36,7 +27,7 @@ class DbnNode:
         self.CPT = []
         self.N = N
         if self.distribution == DbnDistribution.CLASS:
-            self.data = ClassDataStorage(self.value, WeightFonction.EXP, cst.DBN_WEIGHT_FCT_PARAM_EXP_ALPHA)
+            self.data = ClassDataStorage(self.value, WeightFonction.TAN, cst.DBN_WEIGHT_FCT_PARAM_TAN)
         else:
             self.data = MyFifo(self.N)
 
@@ -58,14 +49,14 @@ class DbnNode:
     def distributionParam(self, data):
         self.distParam = data
         if self.distribution == DbnDistribution.CLASS:
-            if self.distParam == None:
+            if data == None:
                 self.distParam = [1/len(self.value)] * len(self.value)
-            else:
-                if round(sum(self.distParam)) != 1:
-                    raise ValueError("The sum of the probabilities are not eaqual to 1")
+            #else:
+            #    if round(sum(self.distParam)) != 1:
+            #        raise ValueError("The sum of the probabilities are not equal to 1")
 
-    def updateDistributionParam(self, param):
-        if self.data.size < self.data.maxSize/10: # only calculate if we have at least 10% of the FiFo
+    def updateDistributionParam(self, updateThresold):
+        if len(self.data) < updateThresold: 
             return False
         if self.distribution == DbnDistribution.NORMAL:
             self.distributionParam(self.data.normal())
@@ -104,3 +95,7 @@ class DbnNode:
             proba.append([self.value[i]] * (self.CPT[i]))
 
         return proba[random.randint(0, len(proba))]
+
+    def addData(self, data):
+        self.data.add(data)
+

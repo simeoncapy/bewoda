@@ -2,7 +2,8 @@ import numpy as np
 from enum import Enum, auto
 
 class WeightFonction(Enum):
-    EXP = lambda a, b: np.exp(-a/b)
+    EXP = lambda x, a: np.exp(-x/a)
+    TAN = lambda x, a: (-np.arctan(a[0] * x + a[1]) + 1.58 + abs(a[2]))/(2*1.58+abs(a[2]))
 
 class ClassDataStorage:
     def __init__(self, className, weightFct, fctParam=None):
@@ -19,8 +20,7 @@ class ClassDataStorage:
     def add(self, className):
         self.data[className] += 1
 
-    def append(self, className): # alias
-        return self.add(className)
+    append = add # alias
 
     def probability(self, weight=True, className=None):
         if weight:
@@ -48,7 +48,7 @@ class ClassDataStorage:
 
 
 if __name__ == "__main__":
-    temp = ClassDataStorage(["test", "test2", "last"], WeightFonction.EXP, 2)
+    temp = ClassDataStorage(["test", "test2", "last"], WeightFonction.TAN, [7, -10000, 0.2])
     temp.add("test")
     temp.add("test")
     temp.add("test")
