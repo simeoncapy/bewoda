@@ -215,6 +215,16 @@ EMOTION_PAD_COLOR = {
 }
 # np.linalg.norm(a-b)
 
+def padToEmotion(pad):
+    norm = float('inf')
+    for emotion, padEmo in EMOTION_PAD_COLOR.items():
+        newNorm = np.linalg.norm(padEmo[0]-pad)
+        if newNorm < norm:
+            norm = newNorm
+            emo = emotion
+
+    return emo
+
 #print(list(EMOTION_PAD_COLOR))
 
 RANDOM_DATA_EPSILON = 0.3
@@ -237,3 +247,10 @@ DBN_NODE_EMOTION_T              = "Et"
 DBN_NODE_P                      = "P0"
 DBN_NODE_A                      = "A0"
 DBN_NODE_D                      = "D0"
+DBN_NODE_ROBOT                  = "R0"
+DBN_NODE_SENSOR                 = "St"
+
+PF_N                            = 1000
+
+DBN_WEIGHT_FCT_PARAM_EXP_ALPHA  = 2
+DBN_WEIGHT_FCT_PARAM_TAN        = [7, -10000, 0.2]

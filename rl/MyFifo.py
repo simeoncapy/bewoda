@@ -1,7 +1,11 @@
+import numpy as np
+from collections import Counter
+
 class MyFifo:
     def __init__(self, maxSize, init=None) -> None:
         self.fifo = [init] * maxSize
         self.maxSize = maxSize
+        self.size = 0
 
     def __str__(self) -> str:
         text = "["
@@ -10,12 +14,17 @@ class MyFifo:
 
         return text[:-2] + "]" # remove the last tab and semi-colon
 
+    def __len__(self):
+        return self.size
+
     def add(self, data):
         self.fifo.append(data)
+        self.size += 1
         if len(self.fifo) > self.maxSize:
             self.fifo.pop(0)
+            self.size -= 1
 
-    def append(self, data):
+    def append(self, data): # alias
         self.add(data)
 
     def empty(self):
@@ -26,6 +35,7 @@ class MyFifo:
 
     def reset(self, val=None):
         self.fifo = [val] * self.maxSize
+        self.size = 0
 
     def read(self):
         return self.fifo
@@ -67,3 +77,20 @@ class MyFifo:
 
     def alwaysChange(self):
         return (self.numberOfChanges == (self.maxSize-1))
+
+    def mean(self):
+        return np.mean(self.fifo[:self.size])
+
+    def std(self):
+        return np.std(self.fifo[:self.size])
+
+    def normal(self):
+        return (self.mean(), self.std())
+
+    def bernoulli(self, limit):
+        s = ['A' if val <= limit else 'B' for val in self.fifo[:self.size]]
+        return s.count("B")/len(s)
+
+    def probability(self):
+        c = Counter(self.fifo[:self.size])        
+        return {key: value / self.size for key, value in c.items()}
