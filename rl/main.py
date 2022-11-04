@@ -12,6 +12,7 @@ import gym
 import random
 import time
 from YokoboEnv import *
+from datetime import datetime
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -44,6 +45,7 @@ if __name__ == '__main__':
     scores, epsHistory = [],[]
     nbrGames = 500
     pyplot = rtb.backends.PyPlot.PyPlot()
+    rewardOverTime = []
 
     for i in range(nbrGames):
         score = 0
@@ -55,6 +57,7 @@ if __name__ == '__main__':
             action = agent.chooseAction(observation)
             observation_, reward, done, info = env.step(action)
             score += reward
+            rewardOverTime.append(str(reward))
             agent.storeTransition(observation, action, reward, observation_, done)
             agent.learn()
             observation = observation_
@@ -73,6 +76,11 @@ if __name__ == '__main__':
 
         info = "episode {:,} - score {:.2f} - average score {:.2f} - epsilon {:.2f} - gamma {:.2f} - LR {:.4f} - FAKE DATA ".format(i, score, avgScore, agent.epsilon, agent.gamma, agent.lr, str(cst.FAKE_DATA)) 
         env.saveTrajectory(i, thres=70, info=info)
+
+        now = datetime.now() 
+        # self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + noColor + noPAD + ".traj", "a")
+        with open("./data/rewards-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + "_" + str(i) + ".rwd", 'w') as fp:
+            fp.write(';'.join(rewardOverTime))
                
 
     #pyplot.hold()

@@ -240,9 +240,9 @@ class YokoboEnv(Env):
             if random.uniform(0,1) < cst.RANDOM_DATA_EPSILON:
                 emo = random.randint(0, len(cst.EMOTION)-1)
             
-            if self.padToEmotion() in cst.EMOTION:
+            if cst.padToEmotion(self.PAD) in cst.EMOTION:
                 if random.uniform(0,1) < cst.RANDOM_MACTH_EMOTION:
-                    emo = cst.EMOTION.index(self.padToEmotion())
+                    emo = cst.EMOTION.index(cst.padToEmotion(self.PAD))
 
             # ---
 
