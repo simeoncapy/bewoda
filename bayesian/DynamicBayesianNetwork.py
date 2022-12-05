@@ -34,7 +34,26 @@ NODES = {
 }
 
 class DynamicBayesianNetwork:
-    def __init__(self, name, N=cst.PF_N, previousSampling=None, load=False):
+    """ Wrapper class of the BayesNet class from pyAgrum library, to add some useful functionnalities
+        NB: be careful to not confuse between the *real* sensors that are collecting data from the real word (eg. thermometer),
+        and the sensor of the DBN that is evaluating the posterior node from the real one.
+    
+        Prameters:
+            * name: the name of the network 
+            * N:
+            * previousSampling: the number of previous data from the *real* sensor it should be storred. If 'None', everything is kept
+            * load: the path containing the network to load. If 'False', create a new network.
+
+
+        Attribute (self.):
+            * dbn: the PyAgrum Dynamic Bayesian Network (DBN)
+            * nodePrior: list of the prior nodes using PriorDbnNode class
+            * nodeSensor: list of the sensor nodes using SensorDbnNode class (currently unique value)
+            * nodePosterior: list of the posterior nodes using PosteriorDbnNode class (currently unique value)
+            * previousEvidence: list of the previous data recorded by the *real* sensors (using a lst or a MyFifo if previousSampling was given)
+            * prediction:
+    """
+    def __init__(self, name: str, N=cst.PF_N, previousSampling=None, load=False):
         self.dbn = gum.BayesNet(name)
         self.N = N
       
@@ -52,18 +71,22 @@ class DynamicBayesianNetwork:
         self.prediction = ""
 
     def load(self, file):
+        """ Load the network from the path stored in 'file'. Call the loadBN function of PyAgrum."""
         self.dbn=gum.loadBN(file)
 
     def create(self):
+        """Create the network. This function is 'hard-coded', it should be changed for an evolutive one.
+           Now, it creates the DBN according the Yokobo project described in Siméon Capy's PHD thesis.
+        """
         for node, param in NODES.items():
             temp = PriorDbnNode(node, param[0], param[1], param[2])
             self.nodePrior[node] = temp
             self.dbn.add(temp.gumNode())
 
-        self.sensor = SensorDbnNode(cst.DBN_NODE_SENSOR, DbnDistribution.CLASS, gum.LabelizedVariable, cst.EMOTION)
-        self.dbn.add(self.sensor.gumNode())
-        self.posterior = PosterioDbnNode(cst.DBN_NODE_EMOTION_T, DbnDistribution.CLASS, gum.LabelizedVariable, cst.EMOTION, cst.PF_N)
-        self.dbn.add(self.posterior.gumNode())
+        self.nodeSensor = SensorDbnNode(cst.DBN_NODE_SENSOR, DbnDistribution.CLASS, gum.LabelizedVariable, cst.EMOTION)
+        self.dbn.add(self.nodeSensor.gumNode())
+        self.nodePosterior = PosterioDbnNode(cst.DBN_NODE_EMOTION_T, DbnDistribution.CLASS, gum.LabelizedVariable, cst.EMOTION, cst.PF_N)
+        self.dbn.add(self.nodePosterior.gumNode())
         
         print(self.dbn.nodes())
 
@@ -100,11 +123,12 @@ class DynamicBayesianNetwork:
         self.nodePrior[cst.DBN_NODE_TIME].distributionParam(None)
         self.nodePrior[cst.DBN_NODE_ROBOT].distributionParam(None)
 
-        self.posterior.distributionParam(None)
-        self.sensor.distributionParam(None)
+        self.nodePosterior.distributionParam(None)
+        self.nodeSensor.distributionParam(None)
 
+        # generate the initial CPTs to complete the DBN
         self._generateCptPrior()
-        self._generateCptPosterior(True)
+        self._generateCptPosterior(True) # True for init
         self._generateCptSensor()
 
         # self.dbn.generateCPTs()
@@ -116,34 +140,44 @@ class DynamicBayesianNetwork:
             self.dbn.cpt(name).fillWith(node.cpt())
 
     def _generateCptPosterior(self, init=True, prior=None):
+        """
+            Generate the new CPT for the posterior node according the current state of the 'prior'
+        """
         if init: # for the initialisation, fill all data with same value
-            self.dbn.cpt(cst.DBN_NODE_EMOTION_T)[:] = self.posterior.cpt()[0]
+            self.dbn.cpt(cst.DBN_NODE_EMOTION_T)[:] = self.nodePosterior.cpt()[0]
         else:
-           self.dbn.cpt(cst.DBN_NODE_EMOTION_T)[prior] = self.posterior.cpt()
+           self.dbn.cpt(cst.DBN_NODE_EMOTION_T)[prior] = self.nodePosterior.cpt()
             #[self.nodePrior[cst.DBN_NODE_EMOTION_T].cpt()] * np.prod([len(s) for s in self.nodePrior])
 
         # bn.cpt("w")[{'r': 0, 's': 0}] = [1, 0]
 
     def _generateCptSensor(self):
-        for val in self.sensor.value:
-            self.dbn.cpt(self.sensor.name)[{self.posterior.name: val}] = self.sensor.cpt()[val]
+        for val in self.nodeSensor.value:
+            self.dbn.cpt(self.nodeSensor.name)[{self.nodePosterior.name: val}] = self.nodeSensor.cpt()[val]
 
   
     def infer(self, evidence, nodeToCheck=cst.DBN_NODE_EMOTION_T):
-        self._readData(evidence)
-        self.posterior.particleFiltering(self.dbn(self.posterior.name), evidence)
+        """
+            Infer the value of the posterior (nodeToCheck) according the value from the *real* sensors (evidence)
+        """
+        self._storeData(evidence)
+        self.nodePosterior.particleFiltering(self.dbn(self.nodePosterior.name), evidence)
 
         ie=gum.LazyPropagation(self.dbn)
         return ie.posterior(nodeToCheck)
 
 
-    def _readData(self, data):
+    def _storeData(self, data):
+        """
+            Store the data from the *real* sensors and calculate the new CPTs of the prior and sensor's nodes.
+            the data should be a dictionnary on the form: {priorNodeName: value}
+        """
         for node, val in data.items():
             self.nodePrior[node].data.append(val)
             self.nodePrior[node].updateDistributionParam(cst.PF_N/10)
         self._generateCptPrior()
 
-        self.sensor.addData(self.prediction, data[self.sensor.name])
+        self.nodeSensor.addData(self.prediction, data[self.nodeSensor.name])
         self._generateCptSensor
         
         
