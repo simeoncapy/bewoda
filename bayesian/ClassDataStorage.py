@@ -66,3 +66,4 @@ if __name__ == "__main__":
 
     print(temp)
     print(temp.probability())
+    print(temp.probability(weight=False))

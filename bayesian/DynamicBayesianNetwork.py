@@ -1,3 +1,10 @@
+"""@package docstring
+Documentation for DynamicBayesianNetwork class.
+Created by Siméon Capy (simeoncapy@gmail.com)
+
+The structure of the network is hard-coded to follow Siméon Capy's thesis and be used with Yokobo. It would be great to update it to make it versatile and adaptable to every project/robot.
+Many values are defined in constantes (either the constant file, or in the current one) such as the class for each *real* sensors.
+"""
 import bisect
 import random
 import pyAgrum as gum
@@ -9,15 +16,15 @@ from SensorDbnNode import SensorDbnNode
 from PriorDbnNode import *
 import numpy as np
 
-sys.path.insert(1, '../rl')
+sys.path.insert(1, '../rl') # Reinforcement Learning algorithm folder
 import constantes as cst
 import MyFifo
 
-valueTemp =     ["<=15", "<=25", "<70"]
-valueHumidity = ["<=30", "<=50", "<=100"]
-valueAP =       ["<=1015", ">1015"]
-valueCo2 =      ["<=400", "<=1000", "<=1200"]
-valueTime =     ["0-6h", "6-12h", "12-18h", "18-24h"]
+valueTemp =     ["<=15", "<=25", "<70"] # values in degree
+valueHumidity = ["<=30", "<=50", "<=100"] # values in percent
+valueAP =       ["<=1015", ">1015"] # values in hectopascal
+valueCo2 =      ["<=400", "<=1000", "<=1200"] # values in part per million
+valueTime =     ["0-6h", "6-12h", "12-18h", "18-24h"] # values in hour
 
 NODES = {
     cst.DBN_NODE_TEMPERATURE_IN:        (DbnDistribution.NORMAL, gum.LabelizedVariable, valueTemp),
@@ -38,24 +45,23 @@ class DynamicBayesianNetwork:
         NB: be careful to not confuse between the *real* sensors that are collecting data from the real word (eg. thermometer),
         and the sensor of the DBN that is evaluating the posterior node from the real one.
     
-        Prameters:
-            * name: the name of the network 
-            * N:
-            * previousSampling: the number of previous data from the *real* sensor it should be storred. If 'None', everything is kept
-            * load: the path containing the network to load. If 'False', create a new network.
-
-
         Attribute (self.):
             * dbn: the PyAgrum Dynamic Bayesian Network (DBN)
             * nodePrior: list of the prior nodes using PriorDbnNode class
             * nodeSensor: list of the sensor nodes using SensorDbnNode class (currently unique value)
             * nodePosterior: list of the posterior nodes using PosteriorDbnNode class (currently unique value)
             * previousEvidence: list of the previous data recorded by the *real* sensors (using a lst or a MyFifo if previousSampling was given)
-            * prediction:
+            * prediction: TODO
+        
     """
-    def __init__(self, name: str, N=cst.PF_N, previousSampling=None, load=False):
+    def __init__(self, name: str, previousSampling=None, load=False):
+        """Constructor
+            Parameters:
+                * name: (str) the name of the network 
+                * previousSampling: (int/bool) the number of previous data from the *real* sensor it should be storred. If 'None', everything is kept
+                * load: (str/bool) the path containing the network to load. If 'False', create a new network.
+        """
         self.dbn = gum.BayesNet(name)
-        self.N = N
       
         self.nodePrior = {}
         if load == False:
@@ -76,7 +82,7 @@ class DynamicBayesianNetwork:
 
     def create(self):
         """Create the network. This function is 'hard-coded', it should be changed for an evolutive one.
-           Now, it creates the DBN according the Yokobo project described in Siméon Capy's PHD thesis.
+           Now, it creates the DBN according the Yokobo project described in Siméon Capy's PhD thesis.
         """
         for node, param in NODES.items():
             temp = PriorDbnNode(node, param[0], param[1], param[2])
@@ -134,14 +140,18 @@ class DynamicBayesianNetwork:
         # self.dbn.generateCPTs()
 
     def _generateCptPrior(self):
+        """ (private function) Generate the new CPT for the prior nodes."""
         for name, node in self.nodePrior.items():
             if name[-1] == "t": # skip the nodes of the second slice
                 continue
             self.dbn.cpt(name).fillWith(node.cpt())
 
     def _generateCptPosterior(self, init=True, prior=None):
-        """
-            Generate the new CPT for the posterior node according the current state of the 'prior'
+        """ (private function) Generate the new CPT for the posterior node according the current state of the 'prior'. If the init parameter is set to True, all the class are equiprobable
+        
+            parameters:
+                * init: (bool) if True all the class are equiprobable, otherwise the probabiliy of each class is calculated
+                * prior: (dict) the current state of all the prior (e.g. {'prior1': value, 'prior2': value})
         """
         if init: # for the initialisation, fill all data with same value
             self.dbn.cpt(cst.DBN_NODE_EMOTION_T)[:] = self.nodePosterior.cpt()[0]
@@ -152,13 +162,18 @@ class DynamicBayesianNetwork:
         # bn.cpt("w")[{'r': 0, 's': 0}] = [1, 0]
 
     def _generateCptSensor(self):
+        """ (private function) Generate the new CPT for the sensor nodes."""
         for val in self.nodeSensor.value:
             self.dbn.cpt(self.nodeSensor.name)[{self.nodePosterior.name: val}] = self.nodeSensor.cpt()[val]
 
   
     def infer(self, evidence, nodeToCheck=cst.DBN_NODE_EMOTION_T):
-        """
-            Infer the value of the posterior (nodeToCheck) according the value from the *real* sensors (evidence)
+        """Infers the value of the posterior (nodeToCheck) according the value from the *real* sensors (evidence) 
+        
+            parameters:
+                * evidence: (dict) the value from the real sensor of each prior nodes (e.g. {priorNodeName1: value, priorNodeName2: value})
+                * nodeToCheck : (str) node's name or node's object (NB: the default value is hard-coded for the emotion of the user)
+        
         """
         self._storeData(evidence)
         self.nodePosterior.particleFiltering(self.dbn(self.nodePosterior.name), evidence)
@@ -169,6 +184,7 @@ class DynamicBayesianNetwork:
 
     def _storeData(self, data):
         """
+            (private function)
             Store the data from the *real* sensors and calculate the new CPTs of the prior and sensor's nodes.
             the data should be a dictionnary on the form: {priorNodeName: value}
         """
