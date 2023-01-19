@@ -142,7 +142,7 @@ class DynamicBayesianNetwork:
     def _generateCptPrior(self):
         """ (private function) Generate the new CPT for the prior nodes."""
         for name, node in self.nodePrior.items():
-            if name[-1] == "t": # skip the nodes of the second slice
+            if name[-1] == "t": # skip the nodes of the second slice (posteriors)
                 continue
             self.dbn.cpt(name).fillWith(node.cpt())
 

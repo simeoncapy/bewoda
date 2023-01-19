@@ -21,7 +21,7 @@ class SensorDbnNode(AbstractDbnNode):
         return super().gumNode()
 
     def distributionParam(self, data):
-        if data == None:
+        if data == None: # filling with identity if no value given (initialisation)
             id = np.identity(len(self.value))
             i = 0
             temp = dict()
