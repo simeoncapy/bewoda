@@ -1,3 +1,10 @@
+"""@package docstring
+Documentation for AbstractDbnNode class.
+Created by Siméon Capy (simeoncapy@gmail.com)
+
+Abstract class representing a node, should not be instancied. It create the basic structure and functions of a node. The code is
+created in the child classes.
+"""
 from abc import ABC, abstractmethod, ABCMeta
 import pyAgrum as gum
 import warnings
