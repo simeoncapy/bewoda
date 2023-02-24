@@ -38,6 +38,8 @@ class AbstractDbnNode(ABC):
         
     @abstractmethod
     def gumNode(self):
+        """Create the node according the type specified in self.gumType
+        """
         node = None
         print(self.value)
         if self.gumType == gum.IntegerVariable:
@@ -51,12 +53,15 @@ class AbstractDbnNode(ABC):
 
     @abstractmethod
     def distributionParam(self, data):
+        """ Calculate the distribution. Should be defined in child classes """
         pass
 
     @abstractmethod
     def updateDistributionParam(self, updateThresold):
+        """ Update the distribution's parameters. Should be defined in child classes """
         pass
 
     @abstractmethod
     def cpt(self):
+        """ Calculate the CPT (Conditional Probability Table). Should be defined in child classes """
         pass
