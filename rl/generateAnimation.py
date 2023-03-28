@@ -19,7 +19,7 @@ print(robot)
 # pyplot.hold()
 # exit()
 
-fileName = "archive/motors-2022-10-25_03-45-22-802181(301_pts)_0"
+fileName = "data/motors-2023-03-09_10-43-03-035030(301_pts)_99"
 f = open(fileName + ".traj", 'r')
 temp = f.read().splitlines()
 while temp[0][0] == "<":
@@ -60,7 +60,7 @@ f.close()
 # plt.show()
 # pyplot.hold()
 
-graph = "pad"
+graph = "m"
 if graph == "m":
     data = input_list
     legend = ["M1", "M2", "M3"]
@@ -68,10 +68,29 @@ elif graph == "pad":
     data = pad
     legend = ["P", "A", "D"]
 
+emotions_pad = []
+emotions_remap_human = []
+data = np.array(data)
+for i in range(np.shape(data)[0]):
+    emotions_pad.append(cst.padToEmotion(data[i]))
+    emotions_remap_human.append(cst.remap_emotion(cst.padToEmotion(data[i])))
+
+human_emotions = np.load("./data/human_emotions_2023-03-09_10-43-03-035030_99.npy")
+human_emotions = [cst.EMOTION[i] for i in human_emotions]
+print(len(human_emotions))
+print(len(emotions_remap_human))
+plt.figure()
+plt.hist(human_emotions, density=True, bins=30)
+plt.figure()
+plt.hist(emotions_remap_human, density=True, bins=30)
+plt.figure()
+plt.hist(emotions_pad, density=True, bins=30)
+plt.show()
+
 #print(np.array(input_total))
-plt.plot(np.array(data))
+plt.plot(data)
 plt.legend(legend)
-plt.savefig(fileName + "_" + "-".join(legend) + ".png")
+# plt.savefig(fileName + "_" + "-".join(legend) + ".png")
 plt.show()
 
 
@@ -82,10 +101,10 @@ robot.plot(
         np.array(input_list),
         backend='pyplot',
         dt=0.001,
-        movie=fileName+".apng",
+        movie=fileName+".gif",
         block=True,
-        color=color,
-        printEach=True
+        # color=color,
+        # printEach=True
     )
 
 #pyplot.hold()

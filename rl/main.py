@@ -1,6 +1,6 @@
 from fileinput import filename
 import constantes as cst
-import nep
+# import nep 
 import numpy as np
 import torch as T
 import torch.nn as nn
@@ -40,18 +40,20 @@ print("##########################################")
 
 if __name__ == '__main__':
     env = YokoboEnv()
-    agent = Agent(gamma=0.99, epsilon=1.0, batchSize=64, nbrActions=dimActionMotor,
-                epsEnd=0.01, inputDims=dimStateMotor, lr=0.003)
+    agent = Agent(gamma=0.9, epsilon=1.0, batchSize=64, nbrActions=dimActionMotor,
+                epsEnd=0.01, inputDims=dimStateMotor, lr=0.005, epsDec=1e-2)
     scores, epsHistory = [],[]
-    nbrGames = 500
+    nbrGames = 200 + 1
     pyplot = rtb.backends.PyPlot.PyPlot()
     rewardOverTime = []
-
+    best_reward = 0
+    best_file = ""
     for i in range(nbrGames):
         score = 0
         done = False
         observation = env.reset()
         j=0
+        action_list = []
         while not done:
             j+=1
             action = agent.chooseAction(observation)
@@ -65,22 +67,45 @@ if __name__ == '__main__':
             time.sleep(cst.SAMPLING_RATE)
             if j>=300: # FOR TEST
                 done = True
+            action_list.append(action)
+        
+        agent.update_epsilon()
+        env.agentLight.update_epsilon()
+
         scores.append(score)
         epsHistory.append(agent.epsilon)
 
-        avgScore = np.mean(scores[-100:])
+        # avgScore = np.mean(scores[-100:])
+        avgScore = np.mean(scores)
         print("episode ", i, 'score %.2f' % score,
                 'average score %.2f' % avgScore,
                 "epsilon %.2f" % agent.epsilon,
                 "colorMatch %.2f" % env.colorMatch)
 
         info = "episode {:,} - score {:.2f} - average score {:.2f} - epsilon {:.2f} - gamma {:.2f} - LR {:.4f} - FAKE DATA ".format(i, score, avgScore, agent.epsilon, agent.gamma, agent.lr, str(cst.FAKE_DATA)) 
-        env.saveTrajectory(i, thres=70, info=info)
+        # env.saveTrajectory(i, thres=70, info=info)
+
+        if i%(nbrGames-1)==0:
+            env.plot_emotions()
+
+            plt.hist(action_list, density=True, bins=27)
+            plt.show()
 
         now = datetime.now() 
+
+        if score > best_reward:
+            best_reward = score
+            best_file = i
+
         # self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + noColor + noPAD + ".traj", "a")
-        with open("./data/rewards-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + "_" + str(i) + ".rwd", 'w') as fp:
+        # with open("./data/rewards-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + "_" + str(i) + ".rwd", 'w') as fp:
+        #     fp.write(';'.join(rewardOverTime))
+    env.saveTrajectory(i, thres=70, info=info)
+    plt.plot(scores)
+    plt.show()
+    with open("./data/rewards-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + "_" + str(i) + ".rwd", 'w') as fp:
             fp.write(';'.join(rewardOverTime))
+    print(f"Best episode{best_file}, with reward {best_reward}")
                
 
     #pyplot.hold()

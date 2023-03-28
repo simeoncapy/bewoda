@@ -73,7 +73,7 @@ MOTOR_MAX = {DEGREE: list(map(dynToDeg, _MAX_)),
              DYNAMIXEL: _MAX_
             }
 
-_STEP_ = 10 # degree
+_STEP_ = 5 # degree
 MOTOR_STEP = {DEGREE: _STEP_, 
               RADIAN: _STEP_*np.pi/180, 
               DYNAMIXEL: _STEP_*(DYN_MAX/360)
@@ -104,7 +104,8 @@ TIME_STEP = 6 # hours
 
 # STATE OF HUMAN
 EMOTION_NEUTRAL = "neutral"
-EMOTION = [EMOTION_NEUTRAL, "happy", "sad", "surprise", "anger"]
+# EMOTION = [EMOTION_NEUTRAL, "happy", "sad", "surprise", "anger"]
+EMOTION = [EMOTION_NEUTRAL, "happy", "sad", "anger"]
 EMOTION_BAD = ["sad", "anger"]
 EMOTION_GOOD = ["happy"]
 
@@ -144,8 +145,9 @@ def TIME_REWARD_CONTINUOUS(t):
     else:
         return 0
 
-REWARD_BAD_EMOTION = -1
-REWARD_GOOD_EMOTION = 1
+REWARD_BAD_EMOTION = -2
+REWARD_GOOD_EMOTION = 10
+REWARD_NEUTRAL = -2
 
 REWARD_NOT_MOVING = -2
 
@@ -213,7 +215,18 @@ EMOTION_PAD_COLOR = {
     "relaxed":      [np.array([ 0.68,   -0.46,   0.06]),  "GREEN"],
     "neutral":      [np.array([ 0.00,    0.00,   0.00]),  "WHITE"]
 }
+
 # np.linalg.norm(a-b)
+NEUTRAL_EMOTIONS = {"neutral":["neutral"],
+                    "happy":["happy", "elated","relaxed","surprised","loved","curious"],
+                    "anger":["violent","angry","hungry"],
+                    "sad":["fearful","sad","bored","sleepy"]}
+
+def remap_emotion(emo):
+    for human_emotion, pad_emo in NEUTRAL_EMOTIONS.items():
+        if emo in pad_emo:
+            break
+    return human_emotion
 
 def padToEmotion(pad):
     norm = float('inf')

@@ -16,7 +16,7 @@ class DeepQNetwork(nn.Module):
         self.layerDim = layersDim
         self.nbrActions = nbrActions
 
-        self.fct = nn.ParameterList()
+        self.fct = nn.ModuleList()
         tempInput = self.inputDims
         for dim in layersDim:
             self.fct.append(nn.Linear(tempInput, dim))
@@ -24,7 +24,7 @@ class DeepQNetwork(nn.Module):
         self.fct.append(nn.Linear(tempInput, self.nbrActions))
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr) 
-        self.loss = nn.MSELoss()
+        self.loss = nn.SmoothL1Loss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
@@ -39,7 +39,9 @@ class DeepQNetwork(nn.Module):
 ##############################################################################################################
 
 class Agent():
-    def __init__(self, gamma, epsilon, lr, inputDims, batchSize, nbrActions, layersDim=[cst.FC1_DIM, cst.FC2_DIM], maxMemSize=100000, epsEnd=0.01, epsDec=5e-4):
+    def __init__(self, gamma, epsilon, lr, inputDims, batchSize, nbrActions, 
+                 layersDim=[cst.FC1_DIM, cst.FC2_DIM], 
+                 maxMemSize=100000, epsEnd=0.01, epsDec=5e-2):
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsMin = epsEnd
@@ -107,5 +109,6 @@ class Agent():
         loss.backward()
         self.Q_eval.optimizer.step()
 
+    def update_epsilon(self):
         self.epsilon = self.epsilon - self.epsDec if self.epsilon > self.epsMin \
                         else self.epsMin

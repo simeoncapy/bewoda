@@ -16,6 +16,7 @@ from datetime import datetime
 import os
 from DeepQNetwork import Agent
 import math
+from collections import Counter
 
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
 
@@ -63,6 +64,8 @@ class YokoboEnv(Env):
         self.oldPad = [0, 0, 0]
 
         self.colorMatch = 0
+
+        self.human_emotions = []
 
         # self.motors = []
         # for i in range(cst.NUMBER_OF_MOTOR):
@@ -112,6 +115,7 @@ class YokoboEnv(Env):
         # Reset the reward
         self.ep_return  = 0
         self.padList = []
+        self.human_emotions = []
         #self.PAD = self.yokobo.pad()
         self.readData()
 
@@ -119,7 +123,7 @@ class YokoboEnv(Env):
             raise Exception("No body is interacting")
 
         # Draw elements on the canvas
-        self.drawElementsOnCanvas()
+        # self.drawElementsOnCanvas()
 
         self.timer = time.perf_counter()
 
@@ -136,7 +140,9 @@ class YokoboEnv(Env):
             self.data = self.createFakeData("random")
         else:
             self.data = self.nep.readData()
+
         self.emotion = self.data[0]
+        self.human_emotions.append(self.emotion)
         if updatePad:
             self.PAD = self.yokobo.pad()
         self.trajectory = self.data[2]
@@ -167,6 +173,29 @@ class YokoboEnv(Env):
 
     def close(self):
         cv2.destroyAllWindows()
+
+    def plot_emotions(self):
+
+        emotions_pad = []
+        emotions_remap_human = []
+        data = self.padList
+        data = np.array(data)
+        for i in range(np.shape(data)[0]):
+            emotions_pad.append(cst.padToEmotion(data[i]))
+            emotions_remap_human.append(cst.remap_emotion(cst.padToEmotion(data[i])))
+
+        # human_emotions = np.load("./data/human_emotions_99.npy")
+        human_emotions = self.human_emotions
+        human_emotions = [cst.EMOTION[i] for i in human_emotions]
+        print(len(human_emotions))
+        print(len(emotions_remap_human))
+        plt.figure()
+        plt.hist(human_emotions, density=True, bins=30)
+        plt.figure()
+        plt.hist(emotions_remap_human, density=True, bins=30)
+        plt.figure()
+        plt.hist(emotions_pad, density=True, bins=30)
+        plt.show()
 
 
     def saveTrajectory(self, episode="", thres=0, info=""):
@@ -215,8 +244,8 @@ class YokoboEnv(Env):
             #print(traj3)
             print(err2)
 
-
-        self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + noColor + noPAD + ".traj", "a")
+        np.save("./data/human_emotions_"+ now.strftime("%Y-%m-%d_%H-%M-%S-%f") +"_"+str(episode)+".npy",np.array(self.human_emotions))
+        self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + noColor + noPAD + ".traj", "a+")
         self.file.write("<units:" + self.yokobo.units() + " - color luminosity - PAD>\n")
         if info != "":
             self.file.write("<" + info + ">\n")
@@ -239,10 +268,11 @@ class YokoboEnv(Env):
             emo = self.emotion
             if random.uniform(0,1) < cst.RANDOM_DATA_EPSILON:
                 emo = random.randint(0, len(cst.EMOTION)-1)
+                # emo = 1
             
-            if cst.padToEmotion(self.PAD) in cst.EMOTION:
-                if random.uniform(0,1) < cst.RANDOM_MACTH_EMOTION:
-                    emo = cst.EMOTION.index(cst.padToEmotion(self.PAD))
+            # if cst.padToEmotion(self.PAD) in cst.EMOTION:
+            #     if random.uniform(0,1) < cst.RANDOM_MACTH_EMOTION:
+            #         emo = cst.EMOTION.index(cst.padToEmotion(self.PAD))
 
             # ---
 
@@ -288,7 +318,7 @@ class YokoboEnv(Env):
                 return ""
             else:
                 return (calculBasis(int(quotient)) +  str(int(remainder)))
-        myVal = calculBasis(number)    
+        myVal = calculBasis(number) 
         return myVal.rjust(cst.NUMBER_OF_MOTOR, "0")
 
     def step(self, action):
@@ -301,9 +331,9 @@ class YokoboEnv(Env):
 
        
         # Reward for executing a step.
-        reward = 1
-        rewardLight = 1
-        reward += cst.TIME_REWARD_CONTINUOUS(time.perf_counter() - self.timer)
+        reward = 0
+        rewardLight = 0
+        # reward += cst.TIME_REWARD_CONTINUOUS(time.perf_counter() - self.timer)
 
         # for i in range(len(self.motors)):
         #     try:
@@ -323,14 +353,29 @@ class YokoboEnv(Env):
             pass     
 
         closeColor = False
-        self.PAD = self.yokobo.pad()        
+        self.PAD = self.yokobo.pad()   
         actionLight, closeColor = self.lightAction()
-        self.readData(False)
+        self.readData(False) 
+        new_yokobo_emotion = cst.remap_emotion(cst.padToEmotion(self.PAD))
 
-        if self.emotion in cst.EMOTION_BAD:
-            reward += cst.REWARD_BAD_EMOTION
-        if self.emotion in cst.EMOTION_GOOD:
+        # if cst.EMOTION[self.emotion] in cst.EMOTION_BAD:
+        #     reward += cst.REWARD_BAD_EMOTION
+        # if cst.EMOTION[self.emotion] in cst.EMOTION_GOOD:
+        #     reward += cst.REWARD_GOOD_EMOTION 
+        if len(self.padList) > 100:
+            last_emotions_yokobo = self.padList[-100:]
+            last_emotions_remapped = [cst.remap_emotion(cst.padToEmotion(pad)) for pad in last_emotions_yokobo]
+            if len(Counter(last_emotions_remapped).values()) != len(Counter(self.human_emotions[-100:]).values()):
+                reward += cst.REWARD_NEUTRAL
+            else:
+                reward += cst.REWARD_GOOD_EMOTION
+            
+
+        if (cst.EMOTION[self.emotion]==new_yokobo_emotion) or (new_yokobo_emotion==cst.remap_emotion(cst.padToEmotion(self.padList[-2]))):
             reward += cst.REWARD_GOOD_EMOTION 
+        else:
+            reward += cst.REWARD_BAD_EMOTION
+
 
         if self.yokobo.magnitudeEndEffectorVelocity(cst.AVERAGE_SIZE_VELOCITY_CHECK) < cst.VELOCITY_LOW:
             reward += cst.REWARD_NOT_MOVING
@@ -349,7 +394,7 @@ class YokoboEnv(Env):
         self.ep_return += 1
 
         # Draw elements on the canvas
-        self.drawElementsOnCanvas()
+        # self.drawElementsOnCanvas()
 
         self.lightLearn(actionLight, rewardLight, doneLight)
 
@@ -391,7 +436,6 @@ class YokoboEnv(Env):
 
         #emo = self.padToEmotion()
         emo = cst.padToEmotion(self.PAD)
-
 
         if cst.EMOTION_PAD_COLOR[emo][1] == self.yokobo.colorFifo.last():
             rewardLight += cst.REWARD_LIGHT_MATCH

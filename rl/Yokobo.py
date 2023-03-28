@@ -146,28 +146,41 @@ class Yokobo():
         if not isinstance(average, Boolean):
             data = self.averageEndEffectorVelocity(average)
         else:
-            data = self.eeVelocity[-1]
+            if not self.eeVelocity:
+                data = [0,0,0]
+            else:
+                data = self.eeVelocity[-1]
         return self._magnitudeEndEffector(data)
 
     def magnitudeEndEffectorAcceleration(self, average=False):
         if average:
             data = self.averageEndEffectorAcceleration()
         else:
-            data = self.eeAcceleration[-1]
+            if not self.eeAcceleration:
+                data = [0,0,0]
+            else:
+                data = self.eeAcceleration[-1]
         return self._magnitudeEndEffector(data)
 
     def magnitudeEndEffectorJerk(self, average=False):
         if average:
             data = self.averageEndEffectorJerk()
         else:
-            data = self.eeJerk[-1]
+            if not self.eeJerk:
+                data = [0,0,0]
+            else:
+                data = self.eeJerk[-1]
+
         return self._magnitudeEndEffector(data)
 
     def magnitudeEndEffectorEnergy(self, average=False):
         if average:
             data = self.averageEndEffectorEnergy()
         else:
-            data = self.eeEnergy[-1]
+            if not self.eeEnergy:
+                data = [0,0,0]
+            else:
+                data = self.eeEnergy[-1]
         return self._magnitudeEndEffector(data)
 
 # -- PRIVATE FUNCTIONS  
