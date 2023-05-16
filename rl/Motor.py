@@ -45,10 +45,10 @@ class Motor():
 
         if newPos > cst.MOTOR_MAX[self.unit][self.id - 1]:
             self.positionsList.append(cst.MOTOR_MAX[self.unit][self.id - 1])
-            raise ValueError(cst.ERROR_MOTOR)
+            # raise ValueError(cst.ERROR_MOTOR)
         elif newPos < cst.MOTOR_MIN[self.unit][self.id - 1]:
             self.positionsList.append(cst.MOTOR_MIN[self.unit][self.id - 1])
-            raise ValueError(cst.ERROR_MOTOR)
+            # raise ValueError(cst.ERROR_MOTOR)
         
         #print(str(self.id) + " " + str(command))
         self.timer = time.perf_counter()
