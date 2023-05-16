@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import torch as T
 import torch.nn as nn
@@ -24,8 +25,10 @@ class DeepQNetwork(nn.Module):
         self.fct.append(nn.Linear(tempInput, self.nbrActions))
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr) 
-        self.loss = nn.SmoothL1Loss()
+        self.loss = nn.MSELoss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        print(self.device)
+        print(T.cuda.current_device())
         self.to(self.device)
 
     def forward(self, state):
@@ -41,7 +44,7 @@ class DeepQNetwork(nn.Module):
 class Agent():
     def __init__(self, gamma, epsilon, lr, inputDims, batchSize, nbrActions, 
                  layersDim=[cst.FC1_DIM, cst.FC2_DIM], 
-                 maxMemSize=100000, epsEnd=0.01, epsDec=5e-2):
+                 maxMemSize=10000, epsEnd=0.01, epsDec=1e-2):
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsMin = epsEnd
@@ -54,6 +57,10 @@ class Agent():
         T.autograd.set_detect_anomaly(True)
 
         self.Q_eval = DeepQNetwork(self.lr, nbrActions=nbrActions, inputDims=inputDims, layersDim=layersDim)
+        self.Q_eval = self.Q_eval.to(self.Q_eval.device)
+
+        self.T_network = DeepQNetwork(self.lr, nbrActions=nbrActions, inputDims=inputDims, layersDim=layersDim)
+        self.T_network = self.T_network.to(self.T_network.device)
 
         self.stateMemory = np.zeros((self.memSize, inputDims), dtype=np.float32)
         self.newStateMemory = np.zeros((self.memSize, inputDims), dtype=np.float32)
@@ -73,7 +80,7 @@ class Agent():
 
     def chooseAction(self, observation):
         if np.random.random() > self.epsilon:
-            state = T.tensor([observation]).to(self.Q_eval.device)
+            state = T.tensor(np.array(observation)).to(self.Q_eval.device)
             actions = self.Q_eval.forward(state.float())
             action = T.argmax(actions).item()
         else:
@@ -99,16 +106,25 @@ class Agent():
 
         actionBatch = self.actionMemory[batch]
 
-        qEval = self.Q_eval.forward(stateBatch.float())[batchIndex, actionBatch]
-        qNext = self.Q_eval.forward(newStateBatch.float())
+        qEval = self.Q_eval(stateBatch.float())[batchIndex, actionBatch]
+        qNext = self.T_network(newStateBatch.float())
         qNext[terminalBatch] = 0.0
+        qNext = T.max(qNext, dim=1)[0]
+        qNext = qNext.detach()
  
-        qTarget = rewardBatch + self.gamma * T.max(qNext, dim=1)[0]
+        qTarget = rewardBatch + self.gamma * qNext
 
         loss = self.Q_eval.loss(qTarget, qEval).to(self.Q_eval.device)
         loss.backward()
         self.Q_eval.optimizer.step()
+    
+    def update_t_target(self):
+        self.T_network.load_state_dict(self.Q_eval.state_dict())
 
     def update_epsilon(self):
         self.epsilon = self.epsilon - self.epsDec if self.epsilon > self.epsMin \
                         else self.epsMin
+        
+    def save_models(self, reward, episode, tag=""):
+        dirpath = "C:\\Users\\posorio\\Documents\\GitHub\\bewoda\\rl\\models"
+        T.save(self.Q_eval.state_dict(), os.path.join(dirpath,"model_" + str(reward)+ "_" +str(episode) + "_" + tag + ".pth"))

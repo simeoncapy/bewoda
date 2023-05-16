@@ -254,9 +254,16 @@ class Yokobo():
 
         for i in range(len(self.motors)):
             try:
-                self.motors[i].move(positions[i]) 
-            except ValueError: # out of range of the motor
-                raise ValueError("The position is out of range")
+                firstMotorOriginFlag = True
+                if i==1:
+                    if self.motors[0].positionsList[-1]>=(cst.MOTOR_ORIGIN[self.motors[0].unit][0] + cst.EPSILON_MOTOR_1[self.motors[0].unit]) or\
+                        self.motors[0].positionsList[-1]<=(cst.MOTOR_ORIGIN[self.motors[0].unit][0] - cst.EPSILON_MOTOR_1[self.motors[0].unit]):
+                        
+                        firstMotorOriginFlag = True
+
+                self.motors[i].move(positions[i], firstMotorOriginFlag) 
+            except ValueError as e: # out of range of the motor
+                raise ValueError(e)
 
         self.timer = time.perf_counter()
         self.duration = self.timer - self.preTimer

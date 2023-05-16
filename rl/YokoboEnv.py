@@ -14,6 +14,7 @@ import time
 import roboticstoolbox as rtb
 from datetime import datetime
 import os
+import sys
 from DeepQNetwork import Agent
 import math
 from collections import Counter
@@ -56,6 +57,12 @@ class YokoboEnv(Env):
         self.data = []
         self.dataExpanded = []
         self.emotion = 0
+        self.temperatureIN = 20
+        self.temperatureOUT = 20
+        self.humidityIN = 50
+        self.hummidityOUT = 50
+        self.atmosphericPressure = 0
+        self.co2Level = 200
         self.PAD = [0, 0, 0]
         self.trajectory = [(0,0), (0,0)]
 
@@ -66,6 +73,7 @@ class YokoboEnv(Env):
         self.colorMatch = 0
 
         self.human_emotions = []
+        self.sensor_values = []
 
         # self.motors = []
         # for i in range(cst.NUMBER_OF_MOTOR):
@@ -142,7 +150,17 @@ class YokoboEnv(Env):
             self.data = self.nep.readData()
 
         self.emotion = self.data[0]
+        self.temperatureIN = self.data[3]
+        self.temperatureOUT = self.data[4]
+        self.humidityIN = self.data[5]
+        self.hummidityOUT = self.data[6]
+        self.atmosphericPressure = self.data[7]
+        self.co2Level = self.data[8]
+
         self.human_emotions.append(self.emotion)
+        self.sensor_values.append(self.data[3:])
+        print(np.shape(self.sensor_values))
+
         if updatePad:
             self.PAD = self.yokobo.pad()
         self.trajectory = self.data[2]
@@ -152,7 +170,10 @@ class YokoboEnv(Env):
             traj += list(pt)
 
         self.padList.append(self.PAD)
-        self.dataExpanded = [self.emotion] + self.PAD + traj
+
+        self.dataExpanded = [self.emotion] + self.PAD + traj + self.data[3:] + self.yokobo.position()
+        self.dataExpanded = [round(x,2) for x in self.dataExpanded]
+
 
     def render(self, mode = "motor"):
         assert mode in ["human", "rgb_array", "display", "motor"], "Invalid mode, must be either \"human\" or \"rgb_array\""
@@ -174,8 +195,7 @@ class YokoboEnv(Env):
     def close(self):
         cv2.destroyAllWindows()
 
-    def plot_emotions(self):
-
+    def return_emotion_distribution(self):
         emotions_pad = []
         emotions_remap_human = []
         data = self.padList
@@ -187,16 +207,32 @@ class YokoboEnv(Env):
         # human_emotions = np.load("./data/human_emotions_99.npy")
         human_emotions = self.human_emotions
         human_emotions = [cst.EMOTION[i] for i in human_emotions]
+
+        return human_emotions, emotions_remap_human
+
+    def plot_emotions(self):
+
+        human_emotions, emotions_remap_human = self.return_emotion_distribution()
         print(len(human_emotions))
-        print(len(emotions_remap_human))
         plt.figure()
         plt.hist(human_emotions, density=True, bins=30)
         plt.figure()
         plt.hist(emotions_remap_human, density=True, bins=30)
-        plt.figure()
-        plt.hist(emotions_pad, density=True, bins=30)
-        plt.show()
 
+    def plot_sensor_values(self):
+        sensor_values = np.array(self.sensor_values)
+        plt.figure()
+        plt.plot(sensor_values[:,0])
+        plt.figure()
+        plt.plot(sensor_values[:,1])
+        plt.figure()
+        plt.plot(sensor_values[:,2])
+        plt.figure()
+        plt.plot(sensor_values[:,3])
+        plt.figure()
+        plt.plot(sensor_values[:,4])
+        plt.figure()
+        plt.plot(sensor_values[:,5])
 
     def saveTrajectory(self, episode="", thres=0, info=""):
         if self.file != -1:
@@ -245,6 +281,7 @@ class YokoboEnv(Env):
             print(err2)
 
         np.save("./data/human_emotions_"+ now.strftime("%Y-%m-%d_%H-%M-%S-%f") +"_"+str(episode)+".npy",np.array(self.human_emotions))
+        np.save("./data/sensors_data"+ now.strftime("%Y-%m-%d_%H-%M-%S-%f") +"_"+str(episode)+".npy",np.array(self.dataExpanded[3:]))
         self.file = open("./data/motors-" + now.strftime("%Y-%m-%d_%H-%M-%S-%f") + '(' + str(lengthTraj) + "_pts)" + "_" + str(episode) + noColor + noPAD + ".traj", "a+")
         self.file.write("<units:" + self.yokobo.units() + " - color luminosity - PAD>\n")
         if info != "":
@@ -264,11 +301,35 @@ class YokoboEnv(Env):
         
 
     def createFakeData(self, type = "random"):
-        if type == "random":            
+
+        if type == "random":
             emo = self.emotion
-            if random.uniform(0,1) < cst.RANDOM_DATA_EPSILON:
-                emo = random.randint(0, len(cst.EMOTION)-1)
+            temperatureIN = self.temperatureIN
+            temperatureOUT = self.temperatureOUT
+            humidityIN = self.humidityIN
+            hummidityOUT = self.hummidityOUT
+            atmosphericPressure = self.atmosphericPressure
+            co2Level = self.co2Level
+
+            random_num = random.random()
+            if random_num < cst.RANDOM_DATA_EPSILON:
+                emo = 0
+                # emo = random.randint(0, len(cst.EMOTION)-3)
                 # emo = 1
+
+                temperatureIN = round(random.normalvariate(20,5),2)
+                temperatureOUT = round(random.normalvariate(15,5),2)
+                humidityIN = round(random.normalvariate(25,5),2)
+                hummidityOUT = round(random.normalvariate(25,5),2)
+                co2Level = round(random.normalvariate(400,100),2)
+                
+                # temperatureIN = round(random.uniform(cst.TEMPERATURE_IN_MIN, cst.TEMPERATURE_IN_MAX),2)
+                # temperatureOUT = round(random.uniform(cst.TEMPERATURE_OUT_MIN, cst.TEMPERATURE_OUT_MAX),2)
+                # humidityIN = round(random.uniform(cst.HUMIDITY_IN_MIN, cst.HUMIDITY_IN_MAX),2)
+                # hummidityOUT = round(random.uniform(cst.HUMIDITY_OUT_MIN, cst.HUMIDITY_OUT_MAX),2)
+                atmosphericPressure = round(random.uniform(cst.ATMOSPHERIC_PRESSURE_MIN, cst.ATMOSPHERIC_PRESSURE_MAX),2)
+                atmosphericPressure = 1 if atmosphericPressure > cst.ATMOSPHERIC_PRESSURE_THRESHOLD else 0
+                # co2Level = round(random.uniform(cst.CO2_LEVEL_MIN, cst.CO2_LEVEL_MAX),2)
             
             # if cst.padToEmotion(self.PAD) in cst.EMOTION:
             #     if random.uniform(0,1) < cst.RANDOM_MACTH_EMOTION:
@@ -284,10 +345,11 @@ class YokoboEnv(Env):
             if newArrivalPoint[0] < 0                : newArrivalPoint[0] = 0
             if newArrivalPoint[1] > cst.CAMERA_Y_SIZE: newArrivalPoint[1] = cst.CAMERA_Y_SIZE
             if newArrivalPoint[1] < 0                : newArrivalPoint[1] = 0
-            
+
             return [emo,
                   [random.uniform(min(cst.PAD), max(cst.PAD)), random.uniform(min(cst.PAD), max(cst.PAD)), random.uniform(min(cst.PAD), max(cst.PAD))], # PAD not used anymore
-                  [fomerArrivalPoint, tuple(newArrivalPoint)]]
+                  [fomerArrivalPoint, tuple(newArrivalPoint)],
+                  temperatureIN, temperatureOUT, humidityIN, hummidityOUT, atmosphericPressure, co2Level]
                   # (random.randint(0, cst.CAMERA_X_SIZE), random.randint(0, cst.CAMERA_Y_SIZE)), (random.randint(0, cst.CAMERA_X_SIZE), random.randint(0, cst.CAMERA_Y_SIZE))
         else:
             return np.zeros(self.observation_shape)
@@ -320,8 +382,25 @@ class YokoboEnv(Env):
                 return (calculBasis(int(quotient)) +  str(int(remainder)))
         myVal = calculBasis(number) 
         return myVal.rjust(cst.NUMBER_OF_MOTOR, "0")
+    
+    def kl_divergence(self, p, q):
+        return np.sum(np.where(p != 0, p * np.log(p / q), 0))
+    
+    def js_divergence(self, p, q):
+        m = (p + q) / 2
+        return (self.kl_divergence(p, m) + self.kl_divergence(q, m)) / 2
+    
+    def softmax(self, x):
+        e_x = np.exp(x - np.max(x))
+        return e_x / e_x.sum()
+    
+    def magnitude(self, x):
+        return np.sqrt(np.sum(np.square(x)))
+    
+    def squared_error(self, x, y):
+        return (x - y) ** 2
 
-    def step(self, action):
+    def step(self, action, step_number):
         # Flag that marks the termination of an episode
         done = False
         doneLight = False
@@ -335,22 +414,27 @@ class YokoboEnv(Env):
         rewardLight = 0
         # reward += cst.TIME_REWARD_CONTINUOUS(time.perf_counter() - self.timer)
 
-        # for i in range(len(self.motors)):
-        #     try:
-        #         self.motors[i].move(cst.ACTIONS[int(self.getAction(action)[-1 * (i+1)])] * cst.MOTOR_STEP[self.motors[i].unit]) # select the rigit digit in the action
-        #     except ValueError: # out of range of the motor
-        #         reward += cst.REWARD_MOTOR_OUT
-        #         done = True
-
         pos = []
         for i in range(len(self.yokobo)):
             pos.append(cst.ACTIONS[int(self.getAction(action)[-1 * (i+1)])] * cst.MOTOR_STEP[self.yokobo.unit])
+        
         try:
             self.yokobo.move(pos)
-        except ValueError: # out of range of the motor
-            #reward += cst.REWARD_MOTOR_OUT
-            #done = True 
-            pass     
+            # reward += cst.REWARD_MOVING
+        except ValueError as e: # out of range of the motor
+            if str(e) == str(cst.ERROR_MOTOR_ONE_NOT_ORIGIN):
+                # reward += cst.REWARD_MOTOR_OUT
+                # done = True 
+                pass
+            # pass 
+        
+        # if len(self.yokobo.motors[1].positionsList) > 10:
+        #     for _, motor in enumerate(self.yokobo.motors):
+        #         if motor.positionsList[-5:] == motor.positionsList[-10:-5]:
+        #             reward += cst.REWARD_NOT_MOVING
+        #         else:
+        #             reward += cst.REWARD_MOTOR_CHANGING 
+
 
         closeColor = False
         self.PAD = self.yokobo.pad()   
@@ -362,24 +446,74 @@ class YokoboEnv(Env):
         #     reward += cst.REWARD_BAD_EMOTION
         # if cst.EMOTION[self.emotion] in cst.EMOTION_GOOD:
         #     reward += cst.REWARD_GOOD_EMOTION 
-        if len(self.padList) > 100:
-            last_emotions_yokobo = self.padList[-100:]
-            last_emotions_remapped = [cst.remap_emotion(cst.padToEmotion(pad)) for pad in last_emotions_yokobo]
-            if len(Counter(last_emotions_remapped).values()) != len(Counter(self.human_emotions[-100:]).values()):
-                reward += cst.REWARD_NEUTRAL
-            else:
-                reward += cst.REWARD_GOOD_EMOTION
+
+        # step_number 
+        if len(self.padList) >= 0:
             
+            # last_emotions_yokobo = self.padList
+            # last_emotions_remapped = [cst.remap_emotion(cst.padToEmotion(pad)) for pad in last_emotions_yokobo]
 
-        if (cst.EMOTION[self.emotion]==new_yokobo_emotion) or (new_yokobo_emotion==cst.remap_emotion(cst.padToEmotion(self.padList[-2]))):
-            reward += cst.REWARD_GOOD_EMOTION 
-        else:
-            reward += cst.REWARD_BAD_EMOTION
+            human_emotions, last_emotions_remapped = self.return_emotion_distribution()
+            unique_labels = set(cst.NEUTRAL_EMOTIONS.keys())
+            human_emotions_len = len(human_emotions)
+            # human_emotions_dist_counts = [human_emotions.count(x) for x in unique_labels]
+            human_emotions_dist = [human_emotions.count(x)/human_emotions_len for x in unique_labels]
+            human_emotions_dist = [1e-6 if x==0.0 else x for x in human_emotions_dist]
 
+            last_emotions_remapped_len = len(last_emotions_remapped)
+            last_emotions_remapped_dist = [last_emotions_remapped.count(x)/last_emotions_remapped_len for x in unique_labels]
+            # last_emotions_remapped_dist_counts = [last_emotions_remapped.count(x) for x in unique_labels]
+            last_emotions_remapped_dist = [1e-6 if x==0.0 else x for x in last_emotions_remapped_dist]
 
-        if self.yokobo.magnitudeEndEffectorVelocity(cst.AVERAGE_SIZE_VELOCITY_CHECK) < cst.VELOCITY_LOW:
-            reward += cst.REWARD_NOT_MOVING
+            # print("Human Emotions: ", human_emotions_dist)
+            # print("Yokobo Emotions: ", last_emotions_remapped_dist)
+            # print("KL Divergence: ", self.kl_divergence(np.array(human_emotions_dist), np.array(last_emotions_remapped_dist)))
+            # if len(self.padList) >= 100:
+            #     sys.exit()
 
+            # kl_divergence = self.kl_divergence(self.softmax(human_emotions_dist_counts), self.softmax(last_emotions_remapped_dist_counts))
+            
+            kl_divergence = self.kl_divergence(np.array(human_emotions_dist), np.array(last_emotions_remapped_dist))
+            if kl_divergence == float("inf") or kl_divergence == float("-inf"):
+                reward += -5000
+            else:
+                # print("KL Divergence: ", kl_divergence)
+                constant_val = 10 if kl_divergence < 1.0 else 2
+                kl_divergence = 1e-5 if kl_divergence==0.0 else kl_divergence
+                kl_divergence = -math.log10(abs(kl_divergence))
+                # print("Log KL Divergence: ", kl_divergence)
+                reward += kl_divergence * constant_val
+
+            if len(self.padList) == step_number:
+                print("Human emotion:", self.emotion)
+                print(last_emotions_remapped_dist)
+                print(human_emotions_dist)
+                print("Reward KL: ", reward)
+
+        # if len(self.padList) > 0:
+        #     last_emotions_yokobo = self.padList
+        #     last_emotions_remapped = [cst.remap_emotion(cst.padToEmotion(pad)) for pad in last_emotions_yokobo]
+
+        #     if (len(Counter(last_emotions_remapped).values()) == len(Counter(self.human_emotions).values())) or\
+        #             (len(Counter(last_emotions_remapped).values()) > 2):
+        #         reward += cst.REWARD_SAME_EMOTION_DISTRIBUTION
+        #     # print("Reward Emotion Dist: ", reward)
+        #     elif len(Counter(last_emotions_remapped).values()) != len(Counter(self.human_emotions).values()):
+        #         reward += cst.REWARD_NOT_SAME_EMOTION_DISTRIBUTION
+
+        # print("Yokobo emotion:", new_yokobo_emotion)
+        # print("Human emotion:", cst.EMOTION[self.emotion])
+        # if (cst.EMOTION[self.emotion]==new_yokobo_emotion):
+        #     reward += cst.REWARD_GOOD_EMOTION 
+        # else:
+        #     reward += cst.REWARD_BAD_EMOTION
+
+        # if self.yokobo.magnitudeEndEffectorVelocity(cst.AVERAGE_SIZE_VELOCITY_CHECK) < cst.VELOCITY_LOW:
+        #     reward += cst.REWARD_NOT_MOVING
+        # else:
+        #     reward += cst.REWARD_MOVING
+
+        # print("Reward Velocity: ", reward)
         rewardLight += self.lightReward(closeColor)
        
 

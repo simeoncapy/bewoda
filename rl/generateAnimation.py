@@ -19,7 +19,7 @@ print(robot)
 # pyplot.hold()
 # exit()
 
-fileName = "data/motors-2023-03-09_10-43-03-035030(301_pts)_99"
+fileName = "data/motors-2023-04-19_15-43-16-160319(436_pts)_33"
 f = open(fileName + ".traj", 'r')
 temp = f.read().splitlines()
 while temp[0][0] == "<":
@@ -75,7 +75,7 @@ for i in range(np.shape(data)[0]):
     emotions_pad.append(cst.padToEmotion(data[i]))
     emotions_remap_human.append(cst.remap_emotion(cst.padToEmotion(data[i])))
 
-human_emotions = np.load("./data/human_emotions_2023-03-09_10-43-03-035030_99.npy")
+human_emotions = np.load("./data/human_emotions_2023-04-19_15-43-16-160319_33.npy")
 human_emotions = [cst.EMOTION[i] for i in human_emotions]
 print(len(human_emotions))
 print(len(emotions_remap_human))

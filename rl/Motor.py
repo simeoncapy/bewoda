@@ -34,19 +34,21 @@ class Motor():
     def trajectory(self):
         return self.positionsList
 
-    def move(self, command):
+    def move(self, command, firstMotorOrigin=None):
         newPos = (self.positionsList[-1] + command)
         #print("MIN: " + str(cst.MOTOR_MIN[self.unit][self.id - 1]) + " - pos: " + str(newPos) + " - MAX: " + str(cst.MOTOR_MAX[self.unit][self.id - 1]))
         # if newPos > cst.MOTOR_MAX[self.unit][self.id - 1] or newPos < cst.MOTOR_MIN[self.unit][self.id - 1]:
         #     self.positionsList.append(self.positionsList[-1])
         #     raise ValueError
+        if not firstMotorOrigin and self.id==2:
+            raise ValueError(cst.ERROR_MOTOR_ONE_NOT_ORIGIN)
 
         if newPos > cst.MOTOR_MAX[self.unit][self.id - 1]:
             self.positionsList.append(cst.MOTOR_MAX[self.unit][self.id - 1])
-            raise ValueError
+            raise ValueError(cst.ERROR_MOTOR)
         elif newPos < cst.MOTOR_MIN[self.unit][self.id - 1]:
             self.positionsList.append(cst.MOTOR_MIN[self.unit][self.id - 1])
-            raise ValueError
+            raise ValueError(cst.ERROR_MOTOR)
         
         #print(str(self.id) + " " + str(command))
         self.timer = time.perf_counter()
